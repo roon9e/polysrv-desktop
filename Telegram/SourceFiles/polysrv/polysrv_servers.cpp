@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/debug_log.h"
 #include "core/polysrv_remote.h"
+#include "mtproto/mtproto_dc_options.h"
 #include "rpl/event_stream.h"
 #include "settings.h"
 
@@ -170,6 +171,67 @@ State &StateInstance() {
 }
 
 } // namespace
+
+uint64 ServerScopeHash(const QString &host) {
+	const auto utf8 = host.toLower().toUtf8();
+	auto hash = quint32(2166136261u);
+	for (const auto byte : utf8) {
+		hash ^= quint32(byte);
+		hash *= quint32(16777619u);
+	}
+	return hash & 0xFFFF;
+}
+
+uint64 ScopedSessionId(uint64 sessionId, const QString &scope) {
+	if (scope.isEmpty()) {
+		return sessionId;
+	}
+	// The scope goes into the bits 40 to 55, which the test mode bit
+	// above 56 does not touch.
+	return sessionId ^ (ServerScopeHash(scope) << 40);
+}
+
+int MainDcIdForServer(const Server &server) {
+	if (server.mainDcId > 0) {
+		return server.mainDcId;
+	}
+	return server.multiDc ? 2 : 1;
+}
+
+void ApplyServerToDcOptions(MTP::DcOptions &options, const Server &server) {
+	options.setOptionsLocked(false);
+	if (server.multiDc) {
+		// A server with more than one data center keeps the options open,
+		// so that the configuration it sends can name the others.
+		if (server.rsaPublicKey.isEmpty()) {
+			options.setBuiltInPublicKeys();
+		} else {
+		options.setPublicKeysFromPem(server.rsaPublicKey);
+		}
+		return;
+	}
+	// A single machine server is one host and port for every data
+	// center, so that the files and the migrations that name a data
+	// center keep working.
+	const auto flags = MTPDdcOption::Flag::f_static
+		| MTPDdcOption::Flag::f_tcpo_only;
+	auto list = QVector<MTPDcOption>();
+	for (auto dcId = 1; dcId <= 5; ++dcId) {
+		list.push_back(MTP_dcOption(
+			MTP_flags(flags),
+			MTP_int(dcId),
+			MTP_string(server.host.toStdString()),
+			MTP_int(server.port),
+			MTPbytes()));
+	}
+	options.setFromList(MTP_vector<MTPDcOption>(list));
+	if (server.rsaPublicKey.isEmpty()) {
+		options.setBuiltInPublicKeys();
+	} else {
+		options.setPublicKeysFromPem(server.rsaPublicKey);
+	}
+	options.setOptionsLocked(true);
+}
 
 bool Server::valid() const {
 	return !id.isEmpty() && !host.isEmpty() && port > 0;

@@ -1064,6 +1064,37 @@ QByteArray Account::downloadsSerialized() const {
 	return _downloadsSerialized;
 }
 
+void Account::writeServerSelection(const ServerSelection &selection) {
+	const auto size = sizeof(qint32)
+		+ sizeof(qint32)
+		+ Serialize::stringSize(selection.id)
+		+ Serialize::stringSize(selection.host);
+	EncryptedDescriptor data(size);
+	data.stream
+		<< qint32(selection.port)
+		<< selection.id
+		<< selection.host;
+	FileWriteDescriptor file(u"polysrv_server"_q, _basePath, true);
+	file.writeEncrypted(data, _localKey);
+}
+
+std::optional<Account::ServerSelection> Account::readServerSelection() {
+	FileReadDescriptor file;
+	if (!ReadEncryptedFile(
+			file,
+			u"polysrv_server"_q,
+			_basePath,
+			_localKey)) {
+		return std::nullopt;
+	}
+	auto result = ServerSelection();
+	file.stream >> result.port >> result.id >> result.host;
+	if (result.empty()) {
+		return std::nullopt;
+	}
+	return result;
+}
+
 void Account::writeSessionSettings() {
 	writeSessionSettings(nullptr);
 }

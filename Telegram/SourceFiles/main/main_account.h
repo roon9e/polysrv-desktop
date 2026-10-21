@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "mtproto/mtproto_auth_key.h"
+#include "storage/storage_account.h"
 #include "mtproto/mtp_instance.h"
 #include "base/weak_ptr.h"
 
@@ -49,6 +50,12 @@ public:
 	void start(std::unique_ptr<MTP::Config> config);
 
 	[[nodiscard]] uint64 willHaveSessionUniqueId(MTP::Config *config) const;
+
+	// The server this account belongs to. The scope is the host of the
+	// server, and is empty for the official Telegram network.
+	[[nodiscard]] QString serverScope() const;
+	void applyServer(const QString &id, const QString &host, int port);
+	void restoreServer(MTP::Config *config);
 	void createSession(
 		const MTPUser &user,
 		std::unique_ptr<SessionSettings> settings = nullptr);
@@ -158,6 +165,7 @@ private:
 
 	Fn<void(QString)> _handleLoginCode = nullptr;
 
+	QString _serverScope;
 	UserId _sessionUserId = 0;
 	QByteArray _sessionUserSerialized;
 	int32 _sessionUserStreamVersion = 0;

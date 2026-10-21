@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_account.h"
 
+#include "polysrv/polysrv_servers.h"
+
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "storage/storage_account.h"
@@ -123,12 +125,54 @@ void Account::watchSessionChanges() {
 	}, _lifetime);
 }
 
+QString Account::serverScope() const {
+	return _serverScope;
+}
+
+void Account::applyServer(
+		const QString &id,
+		const QString &host,
+		int port) {
+	auto selection = Storage::Account::ServerSelection();
+	selection.id = id;
+	selection.host = host;
+	selection.port = port;
+	if (selection.empty()) {
+		return;
+	}
+	local().writeServerSelection(selection);
+	_serverScope = host.toLower();
+	resetAuthorizationKeys();
+}
+
+void Account::restoreServer(MTP::Config *config) {
+	const auto selection = local().readServerSelection();
+	if (!selection) {
+		// The official Telegram network, whose options stay open so that
+		// the configuration it sends can name the other data centers.
+		_serverScope.clear();
+		if (config) {
+			config->dcOptions().setOptionsLocked(false);
+			config->dcOptions().setBuiltInPublicKeys();
+		}
+		return;
+	}
+	_serverScope = selection->host.toLower();
+	const auto server = PolySrv::FindServer(selection->id);
+	if (!server || !config) {
+		return;
+	}
+	PolySrv::ApplyServerToDcOptions(config->dcOptions(), *server);
+}
+
 uint64 Account::willHaveSessionUniqueId(MTP::Config *config) const {
 	// See also Session::uniqueId.
 	if (!_sessionUserId) {
 		return 0;
 	}
-	return _sessionUserId.bare
+	return PolySrv::ScopedSessionId(
+		_sessionUserId.bare,
+		serverScope())
 		| (config && config->isTestMode() ? 0x0100'0000'0000'0000ULL : 0ULL);
 }
 
@@ -425,6 +469,10 @@ void Account::setMtpAuthorization(const QByteArray &serialized) {
 
 void Account::startMtp(std::unique_ptr<MTP::Config> config) {
 	Expects(!_mtp);
+
+	// The server of the account is applied before the session connects,
+	// so that it never talks to the wrong one first.
+	restoreServer(config.get());
 
 	auto fields = base::take(_mtpFields);
 	fields.config = std::move(config);

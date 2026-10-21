@@ -16,6 +16,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <optional>
 #include <vector>
 
+namespace MTP {
+class DcOptions;
+} // namespace MTP
+
 namespace PolySrv {
 
 // A server the client can sign in to.
@@ -38,6 +42,20 @@ struct Server {
 	[[nodiscard]] bool valid() const;
 	[[nodiscard]] QString endpoint() const;
 };
+
+// The scope of a server, used to keep the identity of the same user id
+// on two servers apart.
+[[nodiscard]] uint64 ServerScopeHash(const QString &host);
+
+// The session id of an account on a server. The server scope is mixed
+// into the id, so that the same user id on two servers is two accounts.
+[[nodiscard]] uint64 ScopedSessionId(uint64 sessionId, const QString &scope);
+
+// The home data center of a server. Zero means automatic.
+[[nodiscard]] int MainDcIdForServer(const Server &server);
+
+// Applies a server to the data center options of a session.
+void ApplyServerToDcOptions(MTP::DcOptions &options, const Server &server);
 
 // The servers the client knows about: the official Telegram network first,
 // then the ones the remote list names, then the ones the user added.
