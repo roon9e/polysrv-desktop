@@ -354,6 +354,11 @@ int32 SessionPrivate::getShiftedDcId() const {
 
 void SessionPrivate::dcOptionsChanged() {
 	_retryTimeout = 1;
+	if (_instance->dcOptions().optionsLocked()) {
+		destroyAllConnections();
+		connectToServer(false);
+		return;
+	}
 	connectToServer(true);
 }
 
