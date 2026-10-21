@@ -124,10 +124,11 @@ def main(argv):
     existing = Api('/repos/%s/git/ref/heads/%s'
                    % (args.repo, args.target), token=token, missing_ok=True)
     if existing:
-        Api('/repos/%s/git/refs/%s' % (args.repo, target), 'PATCH', {
-            'sha': commit['sha'],
-            'force': True,
-        }, token=token)
+        Api('/repos/%s/git/refs/heads/%s' % (args.repo, args.target),
+            'PATCH', {
+                'sha': commit['sha'],
+                'force': True,
+            }, token=token)
         print('%s updated to %s' % (args.target, commit['sha']))
     else:
         Api('/repos/%s/git/refs' % args.repo, 'POST', {
