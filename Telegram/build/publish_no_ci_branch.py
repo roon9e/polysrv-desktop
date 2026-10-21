@@ -118,6 +118,10 @@ def main(argv):
     commit = Api('/repos/%s/git/commits' % args.repo, 'POST', {
         'message': message,
         'tree': newTree['sha'],
+        # The snapshot is a child of the commit it was made from, so the
+        # branch carries the history of the source and the one commit
+        # that removes the workflows.
+        'parents': [sourceSha],
     }, token=token)
 
     target = 'refs/heads/' + args.target
