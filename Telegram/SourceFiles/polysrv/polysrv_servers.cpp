@@ -273,7 +273,7 @@ void RefreshRemoteServers() {
 	}
 	const auto request = QNetworkRequest(QUrl(ServersUrl()));
 	const auto reply = state.manager->get(request);
-	reply->connect(reply, &QNetworkReply::finished, [=] {
+	reply->connect(reply, &QNetworkReply::finished, [reply] {
 		const auto data = reply->readAll();
 		const auto error = reply->error();
 		reply->deleteLater();
