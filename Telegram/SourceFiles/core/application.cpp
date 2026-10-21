@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/branding.h"
 #include "core/application.h"
+#include "polysrv/polysrv_links.h"
+#include "polysrv/polysrv_servers.h"
 
 #include "data/data_abstract_structure.h"
 #include "data/data_channel.h"
@@ -1242,7 +1244,9 @@ void Application::checkStartUrls() {
 		auto left = ranges::views::all(
 			urls
 		) | ranges::views::filter([&](const QUrl &url) {
-			if (url.scheme() == u"tonsite"_q) {
+			if (url.scheme() == u"srv"_q) {
+				return !openServerLink(url.toString(), {});
+			} else if (url.scheme() == u"tonsite"_q) {
 				iv().showTonSite(url.toString(), {});
 				return false;
 			} else if (url.scheme() == u"ton"_q) {
@@ -1306,6 +1310,9 @@ void Application::registerWindowActivation(not_null<QWidget*> window) {
 
 bool Application::openLocalUrl(const QString &url, QVariant context) {
 	const auto urlTrimmed = url.trimmed();
+	if (urlTrimmed.startsWith(u"srv://"_q, Qt::CaseInsensitive)) {
+		return openServerLink(urlTrimmed, context);
+	}
 	const auto protocol = u"tg://"_q;
 	if (urlTrimmed.startsWith(protocol, Qt::CaseInsensitive)
 		&& !passcodeLocked()) {
@@ -1321,6 +1328,71 @@ bool Application::openLocalUrl(const QString &url, QVariant context) {
 		}
 	}
 	return openCustomUrl("tg://", LocalUrlHandlers(), url, context);
+}
+
+bool Application::openServerLink(
+		const QString &url,
+		QVariant context) {
+	const auto link = PolySrv::ParseLink(url);
+	switch (link.type) {
+	case PolySrv::Link::Type::AddServer: {
+		if (link.host.isEmpty() || link.port <= 0) {
+			return false;
+		}
+		// The key is never taken from the link: a key in a link is a
+		// man in the middle vector, because the key that answers for a
+		// host and a port is the only thing that is ever trusted.
+		const auto server = PolySrv::AddCustomServer(
+			link.host,
+			link.host,
+			link.port);
+		if (!server) {
+			return false;
+		}
+		for (const auto &account : _domain.orderedAccounts()) {
+			if (account->sessionExists()) {
+				account->applyServer(
+					server->id,
+					server->host,
+					server->port);
+			}
+		}
+		return true;
+	}
+	case PolySrv::Link::Type::Command: {
+		const auto my = context.value<ClickHandlerContext>();
+		const auto controller = my.sessionWindow.get()
+			? my.sessionWindow.get()
+			: _lastActivePrimaryWindow
+			? _lastActivePrimaryWindow->sessionController()
+			: nullptr;
+		// A command link works on any server, so it is not held to the
+		// rule that a tg link needs a Telegram account.
+		return TryRouterForLocalUrl(controller, link.command);
+	}
+	case PolySrv::Link::Type::ServerHost: {
+		const auto host = link.serverHost.toLower();
+		for (const auto &account : _domain.orderedAccounts()) {
+			if (account->serverScope() != host) {
+				continue;
+			}
+			if (account->sessionExists()
+			&& account.get() != &_domain.active()) {
+				// Switching the account inside the click handler can use
+				// after free the window that started it, so the switch is
+				// deferred and the link is opened afterwards.
+				const auto rest = link.rest;
+				InvokeQueued(this, [=] {
+					_domain.maybeActivate(account);
+					openLocalUrl(u"tg://"_q + rest, context);
+				});
+				return true;
+			}
+		return openLocalUrl(u"tg://"_q + link.rest, context);
+	}
+	default:
+		return false;
+	}
 }
 
 bool Application::openInternalUrl(const QString &url, QVariant context) {
@@ -2131,6 +2203,17 @@ void Application::RegisterUrlScheme() {
 		.arguments = arguments,
 		.protocol = u"ton"_q,
 		.protocolName = u"Ton Link"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
+		.longAppName = QCoreApplication::applicationName(),
+		.displayAppName = AppName.utf16(),
+		.displayAppDescription = AppName.utf16(),
+	});
+
+	base::Platform::RegisterUrlScheme(base::Platform::UrlSchemeDescriptor{
+		.executable = Platform::ExecutablePathForShortcuts(),
+		.arguments = arguments,
+		.protocol = u"srv"_q,
+		.protocolName = Branding::AppName.utf16() + u" Link"_q,
 		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
