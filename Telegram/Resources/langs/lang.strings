@@ -393,8 +393,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "lng_polysrv_server_title" = "Choose a server";
 "lng_polysrv_server_description" = "The server your account signs in to.";
-"lng_polysrv_server_continue"
-"lng_polysrv_tg_link_needs_telegram" = "This link belongs to the official Telegram network. Switch to a Telegram account to open it."; = "Continue";
+"lng_polysrv_server_continue" = "Continue";
+"lng_polysrv_tg_link_needs_telegram" = "This link belongs to the official Telegram network. Switch to a Telegram account to open it.";
 "lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 
