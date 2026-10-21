@@ -15,6 +15,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/qt_object_factory.h"
 #include "ui/widgets/buttons.h"
 
+#include <rpl/filter.h>
+#include <rpl/then.h>
+
 #include <QtWidgets/QBoxLayout>
 #include <QtWidgets/QWidget>
 
@@ -41,9 +44,21 @@ ServerSelectWidget::ServerSelectWidget(
 
 	_container = Ui::CreateChild<QWidget>(this);
 	fillRows();
+
+	// The list of the servers the remote domain publishes arrives over
+	// the network, so the rows are filled again when it does.
+	PolySrv::RefreshRemoteServers();
+	PolySrv::ServersChanged() | rpl::on_next([=] {
+		fillRows();
+	}, lifetime());
 }
 
 void ServerSelectWidget::fillRows() {
+	_rows.clear();
+	if (_container) {
+		_container->deleteLater();
+	}
+	_container = Ui::CreateChild<QWidget>(this);
 	auto layout = std::make_unique<QVBoxLayout>(_container);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing((st::introNextButton.height > 0)
