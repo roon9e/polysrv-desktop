@@ -41,12 +41,6 @@ jobs:
           name: PolySRV macos arm64
           path: artifacts/macos-arm64
 
-      - name: Download the macOS build for Intel.
-        uses: actions/download-artifact@v8
-        with:
-          name: PolySRV macos x86_64
-          path: artifacts/macos-x86_64
-
       - name: List the artifacts.
         run: find artifacts -type f
 
@@ -64,7 +58,6 @@ jobs:
             artifacts/windows/PolySRV.exe \
             artifacts/windows/Updater.exe \
             artifacts/macos-arm64/PolySRV-macos-arm64.dmg \
-            artifacts/macos-x86_64/PolySRV-macos-x86_64.dmg \
             artifacts/SHA256SUMS \
             --verify-tag \
             --title "PolySRV $GITHUB_REF_NAME" \
