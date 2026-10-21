@@ -13,7 +13,6 @@ REQUIRED = {
     'Telegram/build/prepare/prepare.py',
     'Telegram/build/qt_version.py',
     'Telegram/build/docker/centos_env/Dockerfile',
-    'snap/snapcraft.yaml',
 }
 MANIFEST_NAMES = {
     '.gitmodules', 'CMakeLists.txt', 'Cargo.toml', 'Cargo.lock',
@@ -58,7 +57,7 @@ def compare(current, candidate):
 def selected(path):
     return (
         path in REQUIRED
-        or path.startswith(('Telegram/build/', 'snap/', '.github/'))
+        or path.startswith(('Telegram/build/', '.github/'))
         or Path(path).name in MANIFEST_NAMES
     )
 
