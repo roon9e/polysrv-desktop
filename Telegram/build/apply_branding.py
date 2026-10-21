@@ -60,7 +60,9 @@ def ReadFile(path):
         return file.read()
 
 
-def WriteFile(path, content):
+def WriteFile(path, content, check=False):
+    if check:
+        return
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8', newline='') as file:
         file.write(content)
@@ -106,13 +108,13 @@ def ReplaceDefine(content, name, value, path, changes):
     return ReplaceValue(content, pattern, value, path, name, changes)
 
 
-def WriteGenerated(path, content, changes):
+def WriteGenerated(path, content, changes, check=False):
     """Writes a file the script owns entirely."""
     label = os.path.relpath(path, RepositoryRoot).replace('\\', '/')
     old = ReadFile(path) if os.path.exists(path) else None
     if old == content:
         return
-    WriteFile(path, content)
+    WriteFile(path, content, check)
     changes.append((label, 'generated', '-', 'updated'))
 
 
@@ -283,7 +285,7 @@ def GenerateAppStream(values):
 """.format(**values)
 
 
-def ApplyResourceScript(path, values, changes, updater):
+def ApplyResourceScript(path, values, changes, updater, check=False):
     content = ReadFile(path)
     description = values['AppName'] + (' Updater' if updater else '')
     content = ReplaceValue(
@@ -295,10 +297,10 @@ def ApplyResourceScript(path, values, changes, updater):
     content = ReplaceValue(
         content, r'(VALUE\s+"ProductName",\s*")([^"]*)(")',
         values['AppName'], path, 'ProductName', changes)
-    WriteFile(path, content)
+    WriteFile(path, content, check)
 
 
-def ApplySetupScript(path, values, changes):
+def ApplySetupScript(path, values, changes, check=False):
     content = ReadFile(path)
     for name, key in (
         ('MyAppShortName', 'ShortAppName'),
@@ -332,7 +334,7 @@ def ApplySetupScript(path, values, changes):
             path, 'installer name ' + (suffix or 'default'), changes,
             r'#define\s+MyOutputBaseFilename\s+"\{#MyOutputBasePrefix\}'
             + re.escape(tail))
-    WriteFile(path, content)
+    WriteFile(path, content, check)
 
 
 def EnsureProtocol(content, scheme, path, changes):
@@ -353,7 +355,7 @@ def EnsureProtocol(content, scheme, path, changes):
     return content
 
 
-def ApplyAppxManifest(path, values, changes):
+def ApplyAppxManifest(path, values, changes, check=False):
     content = ReadFile(path)
     content = ReplaceValue(
         content, r'(<Identity\s+Name=")([^"]*)(")',
@@ -380,10 +382,10 @@ def ApplyAppxManifest(path, values, changes):
         content, r'(TaskId=")([^"]*)(")',
         values['AppXStartupTaskId'], path, 'TaskId', changes)
     content = EnsureProtocol(content, values['UrlScheme'], path, changes)
-    WriteFile(path, content)
+    WriteFile(path, content, check)
 
 
-def ApplyLiterals(values, changes):
+def ApplyLiterals(values, changes, check=False):
     """Renames the binary in the sources that cannot use the C++ constants.
 
     The Updater is built without Qt, so it cannot include the generated
@@ -441,7 +443,7 @@ def ApplyLiterals(values, changes):
                 continue
             content = content.replace(old, new)
             changes.append((relative, old, old, new))
-        WriteFile(path, content)
+        WriteFile(path, content, check)
 
 
 def main(argv):
@@ -454,35 +456,40 @@ def main(argv):
         os.path.join(RepositoryRoot, 'Telegram', 'SourceFiles', 'core',
                      'branding.h'),
         GenerateHeader(values),
-        changes)
+        changes,
+        check)
     xdg = os.path.join(RepositoryRoot, 'lib', 'xdg')
     WriteGenerated(
         os.path.join(xdg, 'polysrv.desktop'),
         GenerateDesktopEntry(values),
-        changes)
+        changes,
+        check)
     WriteGenerated(
         os.path.join(xdg, 'polysrv.service'),
         GenerateService(values),
-        changes)
+        changes,
+        check)
     WriteGenerated(
         os.path.join(xdg, 'polysrv.metainfo.xml'),
         GenerateAppStream(values),
-        changes)
+        changes,
+        check)
 
     # The files the script fills the values into.
     resources = os.path.join(RepositoryRoot, 'Telegram', 'Resources', 'winrc')
     ApplyResourceScript(
-        os.path.join(resources, 'Telegram.rc'), values, changes, False)
+        os.path.join(resources, 'Telegram.rc'), values, changes, False, check)
     ApplyResourceScript(
-        os.path.join(resources, 'Updater.rc'), values, changes, True)
+        os.path.join(resources, 'Updater.rc'), values, changes, True, check)
     ApplySetupScript(
-        os.path.join(ScriptDirectory, 'setup.iss'), values, changes)
+        os.path.join(ScriptDirectory, 'setup.iss'), values, changes, check)
     ApplyAppxManifest(
         os.path.join(RepositoryRoot, 'Telegram', 'Resources', 'uwp', 'AppX',
                      'AppxManifest.xml'),
         values,
-        changes)
-    ApplyLiterals(values, changes)
+        changes,
+        check)
+    ApplyLiterals(values, changes, check)
 
     for path, label, old, new in changes:
         print('%-52s %-24s %s -> %s' % (path, label, old, new))
