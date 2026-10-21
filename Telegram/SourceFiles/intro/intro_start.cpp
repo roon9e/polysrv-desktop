@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "intro/intro_start.h"
 
 #include "lang/lang_keys.h"
@@ -24,7 +25,7 @@ StartWidget::StartWidget(
 	not_null<Data*> data)
 : Step(parent, account, data, true) {
 	setMouseTracking(true);
-	setTitleText(rpl::single(u"Telegram Desktop"_q));
+	setTitleText(rpl::single(Branding::AppName.utf16()));
 	setDescriptionText(tr::lng_intro_about());
 	show();
 }

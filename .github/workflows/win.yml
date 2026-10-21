@@ -1,6 +1,7 @@
 name: Windows.
 
 on:
+  workflow_call:
   push:
     # Pushes to the canary branches run only canary.yml, see there.
     branches-ignore:
@@ -162,7 +163,7 @@ jobs:
       - name: Read configuration matrix.
         shell: bash
         run: |
-          ARTIFACT_NAME="Telegram"
+          ARTIFACT_NAME="PolySRV windows"
 
           ARCH=""
           if [ -n "${{ matrix.arch }}" ]; then
@@ -235,7 +236,7 @@ jobs:
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\Debug
           mkdir artifact
-          move %OUT%\Telegram.exe artifact/
+          move %OUT%\PolySRV.exe artifact/
           move %OUT%\Updater.exe artifact/
       - uses: actions/upload-artifact@v7
         name: Upload artifact.

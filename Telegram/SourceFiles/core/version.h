@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/const_string.h"
+#include "core/branding.h"
 
 #define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
 
@@ -18,10 +19,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #endif // TDESKTOP_ALLOW_CLOSED_ALPHA
 
 // used in Updater.cpp and Setup.iss for Windows
-constexpr auto AppId = "{53F49750-6209-4FBF-9CA8-7A333C87D1ED}"_cs;
+constexpr auto AppId = "{89FB394E-4848-466F-B1B2-57661CEAC51C}"_cs;
 constexpr auto AppNameOld = "Telegram Win (Unofficial)"_cs;
-constexpr auto AppName = "Telegram Desktop"_cs;
-constexpr auto AppFile = "Telegram"_cs;
+constexpr auto AppName = Branding::AppName;
+constexpr auto AppFile = Branding::OutputName;
 constexpr auto AppVersion = 7003002;
 constexpr auto AppVersionStr = "7.3.2";
 constexpr auto AppBetaVersion = false;

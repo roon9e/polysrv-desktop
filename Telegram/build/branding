@@ -1,0 +1,15 @@
+AppName               PolySRV Desktop
+ShortAppName          PolySRV
+ApplicationName       PolySRVDesktop
+CompanyName           PolySRV
+BundleIdentifier      org.polysrv.desktop
+MacOSBundleIdentifier com.polysrv.PolySRV
+AppXIdentityName      PolySRV.PolySRVDesktop
+AppXStartupTaskId     PolySRVStartupTask
+OutputName            PolySRV
+OutputBasePrefix      polysrv-setup
+UrlScheme             srv
+AppId                 89FB394E-4848-466F-B1B2-57661CEAC51C
+Description           PolySRV Desktop messenger
+Homepage              https://github.com/roon9e/polysrv-desktop
+BrandColor            5a4fcf

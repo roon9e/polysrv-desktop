@@ -1,6 +1,7 @@
 name: MacOS Packaged.
 
 on:
+  workflow_call:
   push:
     # Pushes to the canary branches run only canary.yml, see there.
     branches-ignore:
@@ -42,7 +43,7 @@ jobs:
 
   macos:
     name: MacOS ${{ matrix.arch }}
-    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || (matrix.arch == 'arm64' && 'macos-latest' || 'macos-15-intel') }}
+    runs-on: ${{ (github.event_name != 'workflow_call' && (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly')) && 'depot-macos-latest' || (matrix.arch == 'arm64' && 'macos-latest' || 'macos-15-intel') }}
 
     strategy:
       matrix:
@@ -228,28 +229,28 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram ${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=PolySRV macos ${{ matrix.arch }} ${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=PolySRV macos ${{ matrix.arch }}" >> $GITHUB_ENV
           fi
 
           cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE
           cmake --build build
-          macdeployqt build/Telegram.app
-          codesign --force --deep --sign - build/Telegram.app
+          macdeployqt build/PolySRV.app
+          codesign --force --deep --sign - build/PolySRV.app
 
       - name: Create disk image.
         run: |
           cd $REPO_NAME/build
-          hdiutil create -volname "Telegram" -srcfolder Telegram.app -ov -format UDZO Telegram-macos-${{ matrix.arch }}.dmg
+          hdiutil create -volname "PolySRV" -srcfolder PolySRV.app -ov -format UDZO PolySRV-macos-${{ matrix.arch }}.dmg
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd $REPO_NAME/build
           mkdir artifact
-          mv Telegram.app artifact/
-          mv Telegram-macos-${{ matrix.arch }}.dmg artifact/
+          mv PolySRV.app artifact/
+          mv PolySRV-macos-${{ matrix.arch }}.dmg artifact/
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.

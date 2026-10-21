@@ -11,6 +11,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(cmake/validate_special_target.cmake)
 include(cmake/version.cmake)
 desktop_app_parse_version(Telegram/build/version)
+include(Telegram/cmake/branding.cmake)
+desktop_app_parse_branding(Telegram/build/branding)
 
 if (NOT DEFINED CMAKE_CONFIGURATION_TYPES)
     set(configuration_types_init 1)
@@ -19,8 +21,8 @@ endif()
 project(Telegram
     LANGUAGES C CXX
     VERSION ${desktop_app_version_cmake}
-    DESCRIPTION "Official Telegram Desktop messenger"
-    HOMEPAGE_URL "https://desktop.telegram.org"
+    DESCRIPTION "${Branding_Description}"
+    HOMEPAGE_URL "${Branding_Homepage}"
 )
 
 if (APPLE)

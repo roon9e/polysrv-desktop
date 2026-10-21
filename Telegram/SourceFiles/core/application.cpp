@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "core/application.h"
 
 #include "data/data_abstract_structure.h"
@@ -1327,7 +1328,7 @@ bool Application::openInternalUrl(const QString &url, QVariant context) {
 }
 
 QString Application::changelogLink() const {
-	return u"https://telegramdesktop.github.io/tdesktop/changelog/"_q;
+	return Branding::Homepage.utf16() + u"/changelog/"_q;
 }
 
 bool Application::openCustomUrl(
@@ -2107,8 +2108,8 @@ void Application::RegisterUrlScheme() {
 		.executable = Platform::ExecutablePathForShortcuts(),
 		.arguments = arguments,
 		.protocol = u"tg"_q,
-		.protocolName = u"Telegram Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.protocolName = Branding::AppName.utf16() + u" Link"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),
@@ -2119,7 +2120,7 @@ void Application::RegisterUrlScheme() {
 		.arguments = arguments,
 		.protocol = u"tonsite"_q,
 		.protocolName = u"TonSite Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),
@@ -2130,7 +2131,7 @@ void Application::RegisterUrlScheme() {
 		.arguments = arguments,
 		.protocol = u"ton"_q,
 		.protocolName = u"Ton Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),

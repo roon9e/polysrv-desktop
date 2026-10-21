@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/linux/base_linux_app_launch_context.h"
 #include "base/platform/base_platform_process.h"
 #include "lang/lang_keys.h"
+#include "core/branding.h"
 #include "core/launcher.h"
 #include "core/sandbox.h"
 #include "core/application.h"
@@ -233,7 +234,7 @@ bool GenerateDesktopFile(
 	DEBUG_LOG(("App Info: placing .desktop file to %1").arg(targetPath));
 	if (!QDir(targetPath).exists()) QDir().mkpath(targetPath);
 
-	const auto sourceFile = u":/misc/org.telegram.desktop.desktop"_q;
+	const auto sourceFile = u":/misc/%1.desktop"_q.arg(Branding::BundleIdentifier.utf16());
 	const auto targetFile = targetPath
 		+ QGuiApplication::desktopFileName()
 		+ u".desktop"_q;
@@ -738,11 +739,11 @@ void start() {
 		}
 
 		if (!Core::UpdaterDisabled()) {
-			return u"org.telegram.desktop._%1"_q.arg(
+			return u"%1._%2"_q.arg(Branding::BundleIdentifier.utf16()).arg(
 				Core::Launcher::Instance().instanceHash().constData());
 		}
 
-		return u"org.telegram.desktop"_q;
+		return Branding::BundleIdentifier.utf16();
 	}());
 
 	LOG(("App ID: %1").arg(QGuiApplication::desktopFileName()));

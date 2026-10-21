@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/mac/global_menu_mac.h"
 
+#include "core/branding.h"
 #include "core/application.h"
 #include "core/sandbox.h"
 #include "window/window_controller.h"
@@ -160,7 +161,7 @@ void SendKeySequence(
 		objectForInfoDictionaryKey:@"CFBundleName"];
 	return [name isKindOfClass:[NSString class]]
 		? QString::fromNSString(name)
-		: u"Telegram"_q;
+		: Branding::ShortAppName.utf16();
 }
 
 void ForceDisabled(QAction *action, bool disabled) {
@@ -414,7 +415,7 @@ void Manager::buildAppleMenu(QMenu *main) {
 			});
 		};
 		_about = main->addAction(
-			u"About Telegram"_q,
+			u"About %1"_q.arg(Branding::ShortAppName.utf16()),
 			std::move(callback));
 		_about->setMenuRole(QAction::AboutQtRole);
 	}
@@ -648,7 +649,7 @@ void Manager::buildWindowMenu(QMenu *window) {
 	}
 	window->addSeparator();
 	_showTelegram = window->addAction(
-		u"Show Telegram"_q,
+		u"Show %1"_q.arg(Branding::ShortAppName.utf16()),
 		receiver,
 		[this] {
 			if (const auto w = resolveActiveWindow()) {
@@ -658,7 +659,7 @@ void Manager::buildWindowMenu(QMenu *window) {
 }
 
 void Manager::buildMenu() {
-	buildAppleMenu(_menuBar->addMenu(u"Telegram"_q));
+	buildAppleMenu(_menuBar->addMenu(Branding::ShortAppName.utf16()));
 	_file = _menuBar->addMenu(u"File"_q);
 	buildFileMenu(_file);
 	_edit = _menuBar->addMenu(u"Edit"_q);

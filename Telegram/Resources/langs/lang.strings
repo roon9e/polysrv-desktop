@@ -28,10 +28,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "lng_disable_notifications_from_tray" = "Disable notifications";
 "lng_enable_notifications_from_tray" = "Enable notifications";
-"lng_open_from_tray" = "Open Telegram";
+"lng_open_from_tray" = "Open PolySRV";
 "lng_minimize_to_tray" = "Minimize to Tray";
-"lng_quit_from_tray" = "Quit Telegram";
-"lng_tray_icon_text" = "Telegram is still running here,\nyou can change this in Settings.\nIf it disappears from the tray,\nyou can drag it back from the hidden icons.";
+"lng_quit_from_tray" = "Quit PolySRV";
+"lng_tray_icon_text" = "PolySRV is still running here,\nyou can change this in Settings.\nIf it disappears from the tray,\nyou can drag it back from the hidden icons.";
 
 // For lng_month_year or plain month name.
 "lng_month1" = "January";
@@ -300,7 +300,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_flood_error" = "Too many tries. Please try again later.";
 "lng_edit_error" = "You can't edit this message.";
 "lng_error_phone_flood" = "Sorry, you have deleted and re-created your account too many times recently. Please wait for a few days before signing up again.";
-"lng_error_start_minimized_passcoded" = "You have set a local passcode, so Telegram Desktop can't be launched minimized; it will ask you to enter your passcode before it can start working.";
+"lng_error_start_minimized_passcoded" = "You have set a local passcode, so PolySRV Desktop can't be launched minimized; it will ask you to enter your passcode before it can start working.";
 "lng_error_public_groups_denied" = "Unfortunately, you are banned from participating in public groups.\n{more_info}";
 "lng_error_cant_add_member" = "Sorry, you can't add the bot to this group. Ask a group admin to do it.";
 "lng_error_cant_add_bot" = "Sorry, this bot can't be added to groups.";
@@ -344,7 +344,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_proxy_box_username" = "Username";
 "lng_proxy_box_password" = "Password";
 "lng_proxy_invalid" = "The proxy link is invalid.";
-"lng_proxy_unsupported" = "Your Telegram Desktop version doesn't support this proxy type or the proxy link is invalid. Please update Telegram Desktop to the latest version.";
+"lng_proxy_unsupported" = "Your PolySRV Desktop version doesn't support this proxy type or the proxy link is invalid. Please update PolySRV Desktop to the latest version.";
 "lng_proxy_incorrect_secret" = "This proxy link uses invalid **secret** parameter. Please contact the proxy provider and ask him to update MTProxy source code and configure it with a correct **secret** value. Then let him provide a new link.";
 "lng_proxy_check_ip_warning_title" = "Warning";
 "lng_proxy_check_ip_warning" = "This will expose your IP address to the admin of the proxy server.";
@@ -391,7 +391,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_edit_caption_attach" = "Sorry, you can't attach new media while editing a message.";
 "lng_edit_caption_voice" = "Sorry, you can't edit messages when you have an unsent voice message.";
 
-"lng_intro_about" = "Welcome to the official Telegram Desktop app.\nIt's fast and secure.";
+"lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 
 "lng_intro_next" = "Next";
@@ -486,7 +486,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_forum_all_messages" = "All Messages";
 "lng_forum_create_new_topic" = "Create New Thread";
 "lng_dlg_search_for_messages" = "Search for messages";
-"lng_update_telegram" = "Update Telegram";
+"lng_update_telegram" = "Update PolySRV";
 "lng_dlg_search_in" = "Search messages in";
 "lng_dlg_search_from" = "From: {user}";
 "lng_chat_menu" = "Chat menu";
@@ -665,7 +665,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_languages_none" = "No languages found.";
 "lng_languages_count#one" = "{count} language";
 "lng_languages_count#other" = "{count} languages";
-"lng_sure_save_language" = "Telegram will restart in order to change the language";
+"lng_sure_save_language" = "PolySRV will restart in order to change the language";
 "lng_settings_update_automatically" = "Update automatically";
 "lng_settings_install_beta" = "Install beta versions";
 "lng_settings_current_version" = "Version {version}";
@@ -687,9 +687,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_title_total_count" = "Total unread count";
 "lng_settings_native_frame" = "Use system window frame";
 "lng_settings_qt_frame" = "Use Qt window frame";
-"lng_settings_auto_start" = "Launch Telegram when system starts";
+"lng_settings_auto_start" = "Launch PolySRV when system starts";
 "lng_settings_start_min" = "Launch minimized";
-"lng_settings_auto_start_disabled_uwp" = "Starting with the system was disabled in Windows Settings.\n\nPlease enable Telegram Desktop in the Startup Apps Settings.";
+"lng_settings_auto_start_disabled_uwp" = "Starting with the system was disabled in Windows Settings.\n\nPlease enable PolySRV Desktop in the Startup Apps Settings.";
 "lng_settings_restore_windows" = "Restore last opened windows";
 "lng_restore_windows_question" = "Restore windows?";
 "lng_restore_windows_restore" = "Restore";
@@ -699,7 +699,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_restore_windows_disabled_toast" = "Windows will not be restored. You can enable this in Settings > Advanced.";
 "lng_restore_windows_unavailable" = "This chat is no longer available.";
 "lng_settings_open_system_settings" = "Open Settings";
-"lng_settings_add_sendto" = "Place Telegram in \"Send to\" menu";
+"lng_settings_add_sendto" = "Place PolySRV in \"Send to\" menu";
 "lng_settings_mac_warn_before_quit" = "Show warning before quitting with {text}";
 "lng_settings_mac_round_icon" = "Round application icon";
 
@@ -842,17 +842,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_privacy_premium_link" = "Telegram Premium";
 "lng_settings_passcode_disable" = "Disable passcode";
 "lng_settings_passcode_disable_sure" = "Are you sure you want to disable passcode?";
-"lng_settings_passcode_lock_app" = "Lock Telegram with passcode";
+"lng_settings_passcode_lock_app" = "Lock PolySRV with passcode";
 "lng_settings_passcode_wallet_about" = "This passcode protects the wallet keys stored on this device.";
 "lng_settings_passcode_lock_off_wallet" = "Your wallet stays protected by this passcode. Only the launch lock is off.";
 "lng_settings_use_winhello" = "Unlock with Windows Hello";
-"lng_settings_use_winhello_about" = "You need to enter your passcode once before unlocking Telegram with Windows Hello.";
+"lng_settings_use_winhello_about" = "You need to enter your passcode once before unlocking PolySRV with Windows Hello.";
 "lng_settings_use_touchid" = "Unlock with Touch ID";
-"lng_settings_use_touchid_about" = "You need to enter your passcode once before unlocking Telegram with Touch ID.";
+"lng_settings_use_touchid_about" = "You need to enter your passcode once before unlocking PolySRV with Touch ID.";
 "lng_settings_use_applewatch" = "Unlock with Apple Watch";
-"lng_settings_use_applewatch_about" = "You need to enter your passcode once before unlocking Telegram with Apple Watch.";
+"lng_settings_use_applewatch_about" = "You need to enter your passcode once before unlocking PolySRV with Apple Watch.";
 "lng_settings_use_systempwd" = "Unlock with System Password";
-"lng_settings_use_systempwd_about" = "You need to enter your passcode once before unlocking Telegram with System Password.";
+"lng_settings_use_systempwd_about" = "You need to enter your passcode once before unlocking PolySRV with System Password.";
 "lng_settings_password_disable" = "Disable cloud password";
 "lng_settings_password_abort" = "Abort two-step verification setup";
 "lng_settings_about_bio" = "Any details such as age, occupation or city.\nExample: 23 y.o. designer from San Francisco";
@@ -1121,7 +1121,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_theme_reverting#other" = "Reverting to the old theme in {count} seconds.";
 "lng_theme_keep_changes" = "Keep changes";
 "lng_theme_revert" = "Revert";
-"lng_theme_no_desktop" = "Sorry, this theme doesn't include a version for Telegram Desktop.";
+"lng_theme_no_desktop" = "Sorry, this theme doesn't include a version for PolySRV Desktop.";
 "lng_theme_share" = "Share";
 "lng_theme_edit" = "Edit";
 "lng_theme_delete" = "Delete";
@@ -1153,7 +1153,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_download_path_temp" = "Temp folder";
 "lng_download_path_default" = "Default folder";
 "lng_download_path_header" = "Choose download path";
-"lng_download_path_default_radio" = "Telegram folder in system «Downloads»";
+"lng_download_path_default_radio" = "PolySRV folder in system «Downloads»";
 "lng_download_path_temp_radio" = "Temp folder, cleared on logout or uninstall";
 "lng_download_path_dir_radio" = "Custom folder, cleared only manually";
 "lng_download_path_choose" = "Choose download path";
@@ -1217,10 +1217,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_passcode_enter_first" = "Enter a passcode";
 "lng_passcode_enter_new" = "Enter new passcode";
 "lng_passcode_confirm_new" = "Re-enter new passcode";
-"lng_passcode_about" = "When a local passcode is set, a lock icon appears at the top of your chat list. Click it to lock Telegram Desktop.\n\nNote: if you forget your local passcode, you'll need to log out of Telegram Desktop and log in again.";
+"lng_passcode_about" = "When a local passcode is set, a lock icon appears at the top of your chat list. Click it to lock PolySRV Desktop.\n\nNote: if you forget your local passcode, you'll need to log out of PolySRV Desktop and log in again.";
 "lng_passcode_about1" = "When a local passcode is set, a lock icon appears at the top of your chat list.";
-"lng_passcode_about2" = "Click it to lock Telegram Desktop.";
-"lng_passcode_about3" = "Note: if you forget your passcode, you'll need to log out of Telegram Desktop and log in again.";
+"lng_passcode_about2" = "Click it to lock PolySRV Desktop.";
+"lng_passcode_about3" = "Note: if you forget your passcode, you'll need to log out of PolySRV Desktop and log in again.";
 "lng_passcode_differ" = "Passcodes are different";
 "lng_passcode_wrong" = "Wrong passcode";
 "lng_passcode_is_same" = "Passcode was not changed";
@@ -1232,7 +1232,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_passcode_touchid" = "You need to enter your passcode\nbefore you can use Touch ID.";
 "lng_passcode_applewatch" = "You need to enter your passcode\nbefore you can use Watch to unlock.";
 "lng_passcode_systempwd" = "You need to enter your passcode\nbefore you can use system password.";
-"lng_passcode_winhello_unlock" = "Telegram wants to unlock with Windows Hello.";
+"lng_passcode_winhello_unlock" = "PolySRV wants to unlock with Windows Hello.";
 "lng_passcode_touchid_unlock" = "unlock";
 "lng_passcode_create_button" = "Save Passcode";
 "lng_passcode_check_button" = "Submit";
@@ -1240,7 +1240,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_passcode_create_title" = "Create Local Passcode";
 "lng_passcode_check_title" = "Enter Passcode";
 "lng_passcode_change_title" = "Enter Passcode";
-"lng_passcode_unlock_about" = "Unlock Telegram to continue.";
+"lng_passcode_unlock_about" = "Unlock PolySRV to continue.";
 
 "lng_cloud_password_waiting_code" = "Confirmation code sent to {email}...";
 "lng_cloud_password_confirm" = "Confirm recovery email";
@@ -1395,7 +1395,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_passkeys_none_button_unsupported" = "Unsupported";
 "lng_settings_passkeys_created" = "Created {date}";
 "lng_settings_passkeys_last_used" = "Last used {date}";
-"lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of Telegram Desktop.";
+"lng_settings_passkeys_unsigned_error" = "Passkeys are not available in unsigned builds. Please use an official signed version of PolySRV Desktop.";
 "lng_settings_passkey_unknown" = "Passkey";
 
 "lng_passkey_touch" = "Touch your security key";
@@ -2573,12 +2573,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_sure_delete_selected_days#other" = "{count} selected days";
 
 "lng_message_empty" = "Empty Message";
-"lng_message_unsupported" = "This message is not supported by your version of Telegram. Please update to the latest version in Settings > Advanced, or install it from {link}. If you are already using the latest version, this message might depend on a feature that is not yet implemented.";
+"lng_message_unsupported" = "This message is not supported by your version of PolySRV. Please update to the latest version in Settings > Advanced, or install it from {link}. If you are already using the latest version, this message might depend on a feature that is not yet implemented.";
 "lng_unsupported_message_title" = "Unsupported Message";
-"lng_unsupported_message_text" = "Update Telegram to view this message";
+"lng_unsupported_message_text" = "Update PolySRV to view this message";
 "lng_unsupported_message_update" = "Update";
 "lng_unsupported_block_title" = "Unsupported Block";
-"lng_unsupported_block_text" = "Update Telegram to view this part of the message";
+"lng_unsupported_block_text" = "Update PolySRV to view this part of the message";
 "lng_message_not_found" = "Message doesn't exist.";
 
 "lng_duration_minsec_minutes#one" = "{count} min";
@@ -3209,7 +3209,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_cancel_edit_post_yes" = "Yes";
 "lng_cancel_edit_post_no" = "No";
 
-"lng_bot_share_location_unavailable" = "Sorry, location sharing is currently unavailable in Telegram Desktop.";
+"lng_bot_share_location_unavailable" = "Sorry, location sharing is currently unavailable in PolySRV Desktop.";
 "lng_bot_share_phone" = "Do you want to share your phone number with this bot?";
 "lng_bot_share_phone_confirm" = "Share";
 "lng_bot_allow_write_title" = "Allow messaging";
@@ -4526,7 +4526,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_gift_transfer_unlocks_when_hours#one" = "In {count} hour";
 "lng_gift_transfer_unlocks_when_hours#other" = "In {count} hours";
 "lng_gift_transfer_unlocks_update_title" = "Update required";
-"lng_gift_transfer_unlocks_update_about" = "Please update your Telegram application to the latest version.";
+"lng_gift_transfer_unlocks_update_about" = "Please update your PolySRV application to the latest version.";
 "lng_gift_transfer_sure" = "Do you want to transfer ownership of {name} to {recipient}?";
 "lng_gift_transfer_sure_for" = "Do you want to transfer ownership of {name} to {recipient} for {price}?";
 "lng_gift_transfer_button" = "Transfer";
@@ -6267,7 +6267,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_theme_preview_users#one" = "{count} person is using this theme";
 "lng_theme_preview_users#other" = "{count} people are using this theme";
 
-"lng_new_version_wrap" = "Telegram Desktop was updated to version {version}\n\n{changes}\n\nFull version history is available here:\n{link}";
+"lng_new_version_wrap" = "PolySRV Desktop was updated to version {version}\n\n{changes}\n\nFull version history is available here:\n{link}";
 "lng_new_version_minor" = "— Bug fixes and other minor improvements";
 
 "lng_menu_insert_unicode" = "Insert Unicode control character";
@@ -6663,11 +6663,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_group_call_context_ban_from_call" = "Ban from call";
 "lng_group_call_remove_channel" = "Remove {channel} from the video chat and ban them?";
 "lng_group_call_remove_channel_from_channel" = "Remove {channel} from the live stream?";
-"lng_group_call_mac_access" = "Telegram Desktop does not have access to system wide keyboard input required for Push to Talk.";
-"lng_group_call_mac_input" = "Please allow **Input Monitoring** for Telegram in Privacy Settings.";
-"lng_group_call_mac_accessibility" = "Please allow **Accessibility** for Telegram in Privacy Settings.\n\nYou may need to restart the app.";
-"lng_group_call_mac_screencast_access" = "Telegram Desktop does not have access to screen recording required for Screen Sharing.";
-"lng_group_call_mac_recording" = "Please allow **Screen Recording** for Telegram in Privacy Settings.";
+"lng_group_call_mac_access" = "PolySRV Desktop does not have access to system wide keyboard input required for Push to Talk.";
+"lng_group_call_mac_input" = "Please allow **Input Monitoring** for PolySRV in Privacy Settings.";
+"lng_group_call_mac_accessibility" = "Please allow **Accessibility** for PolySRV in Privacy Settings.\n\nYou may need to restart the app.";
+"lng_group_call_mac_screencast_access" = "PolySRV Desktop does not have access to screen recording required for Screen Sharing.";
+"lng_group_call_mac_recording" = "Please allow **Screen Recording** for PolySRV in Privacy Settings.";
 "lng_group_call_mac_settings" = "Open Settings";
 
 "lng_group_call_start_as_header" = "Start Video Chat as...";
@@ -6819,7 +6819,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_confcall_e2e_badge_small" = "E2E Encrypted";
 "lng_confcall_e2e_about" = "These four emoji represent the call's encryption key. They must match for all participants and change when someone joins or leaves.";
 
-"lng_no_mic_permission" = "Telegram needs microphone access so that you can make calls and record voice messages.";
+"lng_no_mic_permission" = "PolySRV needs microphone access so that you can make calls and record voice messages.";
 "lng_player_message_today" = "today at {time}";
 "lng_player_message_yesterday" = "yesterday at {time}";
 "lng_player_message_date" = "{date} at {time}";
@@ -7351,7 +7351,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_terms_update_sorry" = "We're very sorry, but this means we must part ways here. Unlike others, we don't use your data for ad targeting or other commercial purposes. Telegram only stores the information it needs to function as a secure and feature-rich cloud service. You can adjust how we use your data in Privacy & Security settings.\n\nBut if you're generally not OK with Telegram's modest requirements, it won't be possible for us to provide you with this service. You can delete your account now — or look around some more and delete it later if you feel you're not happy with the way we use your data.";
 "lng_terms_decline_and_delete" = "Decline & Delete";
 "lng_terms_back" = "Back";
-"lng_terms_delete_warning" = "Warning, this will irreversibly delete your Telegram account and all the data you store in the Telegram cloud.\n\nImportant: You can Cancel now and export your data first instead of losing it. (To do this, open the latest version of Telegram Desktop and go to Settings > Advanced > Export Telegram data.)";
+"lng_terms_delete_warning" = "Warning, this will irreversibly delete your PolySRV account and all the data you store in the PolySRV cloud.\n\nImportant: You can Cancel now and export your data first instead of losing it. (To do this, open the latest version of PolySRV Desktop and go to Settings > Advanced > Export PolySRV data.)";
 "lng_terms_delete_now" = "Delete now";
 "lng_terms_agree_to_proceed" = "Agree and proceed to {bot}.";
 
@@ -7566,7 +7566,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_export_state_chats_list" = "Processing chats...";
 "lng_export_state_chats" = "Chats";
 "lng_export_skip_file" = "Skip this file";
-"lng_export_progress" = "You can close this window now. Please don't quit Telegram until the data export is completed.";
+"lng_export_progress" = "You can close this window now. Please don't quit PolySRV until the data export is completed.";
 "lng_export_stop" = "Stop";
 "lng_export_sure_stop" = "Are you sure you want to stop exporting your data?\n\nIf you do, you'll need to start over.";
 "lng_export_about_done" = "Your data was successfully exported.";
@@ -7597,7 +7597,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_language_not_found" = "Sorry, this language pack doesn't exist.";
 "lng_language_already" = "You're already using this language pack. You can change your language back at any time in Settings.";
 "lng_language_not_ready_title" = "Insufficient data";
-"lng_language_not_ready_about" = "Unfortunately, this custom language pack ({lang_name}) doesn't contain data for Telegram Desktop. You can contribute to this language pack using the {link}.";
+"lng_language_not_ready_about" = "Unfortunately, this custom language pack ({lang_name}) doesn't contain data for PolySRV Desktop. You can contribute to this language pack using the {link}.";
 "lng_language_not_ready_link" = "translation platform";
 
 "lng_translate_box_error" = "Translate failed.";
@@ -7869,12 +7869,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "lng_outdated_title" = "PLEASE UPDATE YOUR OPERATING SYSTEM.";
 "lng_outdated_title_bits" = "PLEASE SWITCH TO A 64-BIT OPERATING SYSTEM.";
-"lng_outdated_soon" = "Otherwise, Telegram Desktop will stop updating on {date}.";
-"lng_outdated_now" = "So Telegram Desktop can update to newer versions.";
+"lng_outdated_soon" = "Otherwise, PolySRV Desktop will stop updating on {date}.";
+"lng_outdated_now" = "So PolySRV Desktop can update to newer versions.";
 
-"lng_screen_reader_bar_text" = "Telegram is working in Screen Reader mode.";
+"lng_screen_reader_bar_text" = "PolySRV is working in Screen Reader mode.";
 "lng_screen_reader_bar_disable" = "Disable";
-"lng_screen_reader_confirm_text" = "Telegram detected accessibility software is being used in your system and it is working in Screen Reader friendly mode.\n\nThis may result in unexpected changes to the way Telegram user interface works.\n\nIf you do not use Screen Reader software with Telegram, please disable this mode.";
+"lng_screen_reader_confirm_text" = "PolySRV detected accessibility software is being used in your system and it is working in Screen Reader friendly mode.\n\nThis may result in unexpected changes to the way PolySRV user interface works.\n\nIf you do not use Screen Reader software with PolySRV, please disable this mode.";
 "lng_screen_reader_confirm_disable" = "Disable";
 "lng_screen_reader_settings_title" = "Screen reader";
 "lng_screen_reader_settings_disable" = "Disable screen reader mode";
@@ -9086,10 +9086,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_wallet_protection_open" = "Don't ask for passcode";
 "lng_wallet_protection_open_about" = "Anyone with access to your Telegram can spend your funds.";
 "lng_wallet_protection_open_title" = "Store without a passcode?";
-"lng_wallet_protection_open_warning_lock" = "Anyone who gains access to your unlocked Telegram Desktop on this computer will be able to steal your wallet's funds.\n\nYou can change this later from Passcode Lock in the wallet menu.";
+"lng_wallet_protection_open_warning_lock" = "Anyone who gains access to your unlocked PolySRV Desktop on this computer will be able to steal your wallet's funds.\n\nYou can change this later from Passcode Lock in the wallet menu.";
 "lng_wallet_protection_open_warning_nolock" = "Anyone who gains access to this computer will be able to steal your wallet's funds.\n\nYou can change this later from Passcode Lock in the wallet menu.";
 "lng_wallet_protection_open_confirm" = "Store anyway";
-"lng_wallet_protection_create_about" = "This passcode protects your wallet key on this device. It does not lock Telegram until you turn that on in Settings.";
+"lng_wallet_protection_create_about" = "This passcode protects your wallet key on this device. It does not lock PolySRV until you turn that on in Settings.";
 "lng_wallet_protection_error" = "The wallet key's protection could not be changed.";
 "lng_wallet_protection_passcode_changed_error" = "The passcode was changed, but wallet protection could not be updated. Restore your wallet keys from a backup or recovery phrase.";
 "lng_wallet_protection_touchid_about" = "Confirm all spending with your fingerprint or Mac password.";
@@ -9100,10 +9100,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_wallet_protection_retained" = "Telegram won't ask for {provider} again for 15 minutes. {link}";
 "lng_wallet_protection_retained_ask" = "Ask next time";
 "lng_wallet_protection_hardware_failed" = "{provider} did not confirm it was you. Nothing was changed.";
-"lng_wallet_protection_hardware_unavailable" = "Your wallet key on this device is protected by {provider}, which can't be used right now. Restart Telegram to try again, or restore the wallet from Telegram's encrypted backup or with your recovery phrase to protect it another way.";
+"lng_wallet_protection_hardware_unavailable" = "Your wallet key on this device is protected by {provider}, which can't be used right now. Restart PolySRV to try again, or restore the wallet from PolySRV's encrypted backup or with your recovery phrase to protect it another way.";
 "lng_wallet_protection_hardware_absent" = "Your wallet key on this device was protected by {provider}, but that key can no longer be used on this device. Restore the wallet from Telegram's encrypted backup or with your recovery phrase to store the key again.";
 "lng_wallet_passcode_forgot" = "Forgot passcode?";
-"lng_wallet_passcode_forgot_about" = "Without the passcode this device cannot open its stored wallet keys. You can remove all wallet keys on this device and the passcode and keep using Telegram — you will not be logged out.";
+"lng_wallet_passcode_forgot_about" = "Without the passcode this device cannot open its stored wallet keys. You can remove all wallet keys on this device and the passcode and keep using PolySRV — you will not be logged out.";
 "lng_wallet_passcode_forgot_backed" = "Your wallet can be restored from your Telegram backup.";
 "lng_wallet_passcode_forgot_confirm" = "Remove keys";
 "lng_wallet_passcode_forgot_done" = "The wallet keys and the passcode were removed from this device.";
@@ -9274,7 +9274,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_mac_menu_add_contact" = "Add Contact";
 "lng_mac_menu_new_group" = "New Group";
 "lng_mac_menu_new_channel" = "New Channel";
-"lng_mac_menu_show" = "Show Telegram";
+"lng_mac_menu_show" = "Show PolySRV";
 "lng_mac_menu_emoji_and_symbols" = "Emoji & Symbols";
 "lng_mac_menu_fullscreen" = "Toggle Full Screen";
 
