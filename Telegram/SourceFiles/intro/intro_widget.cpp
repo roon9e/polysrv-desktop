@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_widget.h"
 
+#include "intro/intro_server_select.h"
+
 #include "intro/intro_start.h"
 #include "intro/intro_phone.h"
 #include "intro/intro_qr.h"
@@ -117,6 +119,9 @@ Widget::Widget(
 		break;
 	case EnterPoint::Qr:
 		appendStep(new QrWidget(this, _account, getData()));
+		break;
+	case EnterPoint::ServerSelect:
+		appendStep(new ServerSelectWidget(this, _account, getData()));
 		break;
 	default: Unexpected("Enter point in Intro::Widget::Widget.");
 	}

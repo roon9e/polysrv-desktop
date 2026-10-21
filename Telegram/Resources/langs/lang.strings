@@ -391,6 +391,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_edit_caption_attach" = "Sorry, you can't attach new media while editing a message.";
 "lng_edit_caption_voice" = "Sorry, you can't edit messages when you have an unsent voice message.";
 
+"lng_polysrv_server_title" = "Choose a server";
+"lng_polysrv_server_description" = "The server your account signs in to.";
+"lng_polysrv_server_continue" = "Continue";
 "lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 
