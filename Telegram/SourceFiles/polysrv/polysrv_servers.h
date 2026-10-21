@@ -9,15 +9,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/basic_types.h"
 
+#include <rpl/producer.h>
+
 #include <QtCore/QString>
 
 #include <optional>
 #include <vector>
-
-namespace rpl {
-template <typename Value>
-class producer;
-} // namespace rpl
 
 namespace PolySrv {
 
