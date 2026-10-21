@@ -1,0 +1,64 @@
+name: Release.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+
+  linux:
+    uses: ./.github/workflows/linux.yml
+
+  windows:
+    uses: ./.github/workflows/win.yml
+
+  macos:
+    uses: ./.github/workflows/mac_packaged.yml
+
+  publish:
+    name: Publish
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the Linux build.
+        uses: actions/download-artifact@v8
+        with:
+          name: PolySRV linux
+          path: artifacts/linux
+
+      - name: Download the Windows build.
+        uses: actions/download-artifact@v8
+        with:
+          name: PolySRV windows x64
+          path: artifacts/windows
+
+      - name: Download the macOS build.
+        uses: actions/download-artifact@v8
+        with:
+          name: PolySRV macos arm64
+          path: artifacts/macos
+
+      - name: List the artifacts.
+        run: find artifacts -type f
+
+      - name: Create the checksums.
+        working-directory: artifacts
+        run: find . -type f -exec sha256sum {} + > SHA256SUMS
+
+      - name: Publish the release.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            artifacts/linux/PolySRV \
+            artifacts/linux/Updater \
+            artifacts/windows/PolySRV.exe \
+            artifacts/windows/Updater.exe \
+            artifacts/macos/PolySRV-macos-arm64.dmg \
+            artifacts/SHA256SUMS \
+            --verify-tag \
+            --title "PolySRV $GITHUB_REF_NAME" \
+            --generate-notes
