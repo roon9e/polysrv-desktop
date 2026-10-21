@@ -1323,6 +1323,15 @@ bool Application::openLocalUrl(const QString &url, QVariant context) {
 			: _lastActivePrimaryWindow
 			? _lastActivePrimaryWindow->sessionController()
 			: nullptr;
+		if (controller) {
+			const auto &account = controller->session().account();
+			if (!account.serverScope().isEmpty()) {
+				// A tg link belongs to the official Telegram network,
+				// so it cannot be routed on another server.
+				Ui::MakeInformBox(tr::lng_polysrv_tg_link_needs_telegram());
+				return true;
+			}
+		}
 		if (TryRouterForLocalUrl(controller, command)) {
 			return true;
 		}

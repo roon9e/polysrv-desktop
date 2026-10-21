@@ -335,7 +335,15 @@ not_null<Main::Account*> Domain::add(MTP::Environment environment) {
 	auto mainDcId = MTP::Instance::Fields::kNotSetMainDc;
 	const auto accountConfig = [&](not_null<Account*> account) {
 		mainDcId = account->mtp().mainDcId();
-		return cloneConfig(account->mtp().config());
+		auto result = cloneConfig(account->mtp().config());
+		if (result->dcOptions().optionsLocked()) {
+			// A fixed server account must not lend its data center
+			// options, its public key or its lock to the next one.
+			result->dcOptions().constructFromBuiltIn();
+			result->dcOptions().setOptionsLocked(false);
+			result->dcOptions().setBuiltInPublicKeys();
+		}
+		return result;
 	};
 	auto config = [&] {
 		if (_active.current()->mtp().environment() == environment) {
@@ -543,6 +551,12 @@ void Domain::checkForLastProductionConfig(
 		not_null<Main::Account*> account) {
 	const auto mtp = &account->mtp();
 	if (mtp->environment() != MTP::Environment::Production) {
+		return;
+	}
+	if (mtp->dcOptions().optionsLocked()) {
+		// A fixed server account is a production account, but it
+		// points at one server, so it must not become the fallback
+		// that the next start would use.
 		return;
 	}
 	for (const auto &[index, other] : _accounts) {

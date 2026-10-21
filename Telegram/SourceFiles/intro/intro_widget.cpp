@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "intro/intro_start.h"
 #include "intro/intro_phone.h"
 #include "intro/intro_qr.h"
+#include "intro/intro_start.h"
 #include "intro/intro_code.h"
 #include "intro/intro_signup.h"
 #include "intro/intro_password_check.h"
@@ -118,7 +119,9 @@ Widget::Widget(
 		appendStep(new PhoneWidget(this, _account, getData()));
 		break;
 	case EnterPoint::Qr:
-		appendStep(new QrWidget(this, _account, getData()));
+		// The start widget comes first, so that the server is
+		// chosen before the account connects.
+		appendStep(new StartWidget(this, _account, getData()));
 		break;
 	case EnterPoint::ServerSelect:
 		appendStep(new ServerSelectWidget(this, _account, getData()));

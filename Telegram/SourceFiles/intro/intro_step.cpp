@@ -197,6 +197,7 @@ void Step::finish(const MTPUser &user, QImage &&photo) {
 		const auto raw = existing.get();
 		if (const auto session = raw->maybeSession()) {
 			if (raw->mtp().environment() == _account->mtp().environment()
+				&& raw->serverScope() == _account->serverScope()
 				&& UserId(user.c_user().vid()) == session->userId()) {
 				_account->logOut();
 				crl::on_main(raw, [=] {
