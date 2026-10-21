@@ -47,7 +47,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [arm64, x86_64]
         defines:
           - ""
 
@@ -56,7 +56,8 @@ jobs:
       CMAKE_GENERATOR: "Ninja"
       CMAKE_BUILD_TYPE: "Debug"
       CMAKE_BUILD_PARALLEL_LEVEL: ""
-      CMAKE_PREFIX_PATH: "/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft"
+      HOMEBREW_PREFIX: ${{ matrix.arch == 'arm64' && '/opt/homebrew' || '/usr/local' }}
+      CMAKE_PREFIX_PATH: ${{ matrix.arch == 'arm64' && '/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft' || '/usr/local/opt/ffmpeg@6:/usr/local/opt/openal-soft' }}
       TDE2E: "51743dfd01dff6179e2d8f7095729caa4e2222e9"
       TLOTTIE: "92df98dc209bc39b1e567ec74a8c86a0af5239de"
       WALLET_ENGINE: "e59e0d89d7ee90c388bf36e3334c5b276f396697"
@@ -84,7 +85,7 @@ jobs:
           brew upgrade || true
           brew install autoconf automake boost cmake libtool ninja pkg-config python $libs
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
+          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' $HOMEBREW_PREFIX/share/cmake/Modules/Compiler/GNU.cmake
 
           xcodebuild -version > CACHE_KEY.txt
           brew list --versions $libs >> CACHE_KEY.txt
@@ -96,7 +97,7 @@ jobs:
           fi
           echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
-          echo "MACOSX_DEPLOYMENT_TARGET=$(grep 'set(QT_SUPPORTED_MIN_MACOS_VERSION' /opt/homebrew/Cellar/qtbase/*/lib/cmake/Qt6/Qt6ConfigExtras.cmake | sed -E 's/^.*"(.*)"\)$/\1/')" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=$(grep 'set(QT_SUPPORTED_MIN_MACOS_VERSION' $HOMEBREW_PREFIX/Cellar/qtbase/*/lib/cmake/Qt6/Qt6ConfigExtras.cmake | sed -E 's/^.*"(.*)"\)$/\1/')" >> $GITHUB_ENV
           echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
 
           echo "RNNOISE=`curl -sSL --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/xiph/rnnoise/git/refs/heads/master | jq -r .object.sha`" >> $GITHUB_ENV
@@ -107,7 +108,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tdesktop_rust
-          key: ${{ runner.OS }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
       - name: Rust libraries.
         if: steps.cache-tdesktop-rust.outputs.cache-hit != 'true'
         run: |
@@ -167,7 +168,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.LibrariesPath }}/local/rnnoise
-          key: ${{ runner.OS }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
       - name: RNNoise.
         if: steps.cache-rnnoise.outputs.cache-hit != 'true'
         run: |
@@ -185,7 +186,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tg_owt
-          key: ${{ runner.OS }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
       - name: WebRTC.
         if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
@@ -203,7 +204,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tde2e
-          key: ${{ runner.OS }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
       - name: TDE2E.
         if: steps.cache-tde2e.outputs.cache-hit != 'true'
         run: |
