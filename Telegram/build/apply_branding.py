@@ -157,6 +157,10 @@ def GenerateHeader(values):
         '// Where the project lives.',
         'constexpr auto Homepage = "%s"_cs;' % values['Homepage'],
         '',
+        '// The domain the client fetches the server list and the update',
+        '// manifest from.',
+        'constexpr auto RemoteDomain = "%s"_cs;' % values['RemoteDomain'],
+        '',
         '} // namespace Branding',
         '',
     ]

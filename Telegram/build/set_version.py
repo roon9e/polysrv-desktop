@@ -56,6 +56,18 @@ checkVersionPart(versionMinor)
 checkVersionPart(versionPatch)
 checkVersionPart(versionAlpha)
 
+# The PolySRV release number, counted within one official Telegram version.
+# It lives in the version file rather than in the argument, because it is
+# ours and not part of the official version.
+polySrvBuild = '0'
+with io.open(scriptPath + '/version', encoding='utf-8') as f:
+  for line in f:
+    match = re.match(r'^\s*PolySrvBuild\s+(\d+)\s*$', line)
+    if match:
+      polySrvBuild = match.group(1)
+      break
+checkVersionPart(polySrvBuild)
+
 versionFull = str(int(versionMajor) * 1000000 + int(versionMinor) * 1000 + int(versionPatch))
 versionFullAlpha = '0'
 if versionAlpha != '0':
@@ -128,10 +140,15 @@ replaceInFile(scriptPath + '/../SourceFiles/core/version.h', [
   [ r'(TDESKTOP_REQUESTED_ALPHA_VERSION\s+)\(\d+ULL\)', r'\g<1>(' + versionFullAlpha + 'ULL)' ],
   [ r'(AppVersion\s+=\s+)\d+', r'\g<1>' + versionFull ],
   [ r'(AppVersionStr\s+=\s+)[^;]+', r'\g<1>"' + versionStrSmall + '"' ],
+  [ r'(PolySrvBuild\s+=\s+)\d+', r'\g<1>' + polySrvBuild ],
   [ r'(AppBetaVersion\s+=\s+)[a-z]+', r'\g<1>' + ('true' if versionBeta else 'false') ],
 ])
 
-parts = [versionMajor, versionMinor, versionPatch, versionAlpha]
+# The fourth component of the Windows and AppX versions is the PolySRV build
+# number, so the version reads 7.3.2.1 for the first PolySRV release of
+# Telegram 7.3.2. It is not the alpha channel: a numeric fourth component
+# in AppVersionOriginal would be read as one by cmake/version.cmake.
+parts = [versionMajor, versionMinor, versionPatch, polySrvBuild]
 withcomma = ','.join(parts)
 withdot = '.'.join(parts)
 rcReplaces = [

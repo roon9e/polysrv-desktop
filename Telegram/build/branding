@@ -12,4 +12,5 @@ UrlScheme             srv
 AppId                 89FB394E-4848-466F-B1B2-57661CEAC51C
 Description           PolySRV Desktop messenger
 Homepage              https://github.com/roon9e/polysrv-desktop
+RemoteDomain          https://roon9e.github.io/polysrv-desktop
 BrandColor            5a4fcf

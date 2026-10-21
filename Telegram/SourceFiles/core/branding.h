@@ -34,4 +34,8 @@ constexpr auto UrlScheme = "srv"_cs;
 // Where the project lives.
 constexpr auto Homepage = "https://github.com/roon9e/polysrv-desktop"_cs;
 
+// The domain the client fetches the server list and the update
+// manifest from.
+constexpr auto RemoteDomain = "https://roon9e.github.io/polysrv-desktop"_cs;
+
 } // namespace Branding

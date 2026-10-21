@@ -559,6 +559,8 @@ PRIVATE
     chat_helpers/ttl_media_layer_widget.h
     core/application.cpp
     core/application.h
+    core/polysrv_remote.cpp
+    core/polysrv_remote.h
     core/proxy_rotation_manager.cpp
     core/proxy_rotation_manager.h
     core/cached_webview_availability.h
