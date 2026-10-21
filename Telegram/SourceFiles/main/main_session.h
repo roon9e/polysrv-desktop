@@ -10,7 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <rpl/filter.h>
 #include <rpl/variable.h>
 #include "base/timer.h"
-#include "main/main_account.h"
 
 class ApiWrap;
 
