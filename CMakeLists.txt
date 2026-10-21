@@ -35,6 +35,15 @@ if (configuration_types_init
     set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES};MinSizeRel" CACHE STRING "" FORCE)
 endif()
 
+# GCC 15 warns about the range loops that copy their element, and the code
+# base uses `for (const auto x : list)` widely. The copy is of a small
+# wrapper, so the warning is noise here, and the builds run with warnings as
+# errors.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
+    add_compile_options(-Wno-range-loop-construct)
+endif()
+
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Telegram)
 
 get_filename_component(third_party_loc "Telegram/ThirdParty" REALPATH)
