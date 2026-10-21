@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "servers": [
+    {
+      "id": "telegram",
+      "name": "Telegram",
+      "description": "Official Telegram cloud. Sign in with your Telegram account.",
+      "host": "149.154.167.51",
+      "port": 443,
+      "multiDc": true,
+      "mainDcId": 2,
+      "isTelegram": true,
+      "rsaPublicKeyPem": "",
+      "logoUrl": ""
+    }
+  ]
+}
