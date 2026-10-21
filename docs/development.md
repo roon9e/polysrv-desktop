@@ -25,6 +25,27 @@ kept deliberately narrow.
 * The build matrix is one job per platform. Adding a matrix dimension means
   adding several concurrent jobs, so it has to be worth it.
 
+### The prune that keeps the wallet engine
+
+`mac.yml` and `win.yml` prune the third party libraries to free disk space
+before the build. The prune is a negated keep list, so **it deletes every
+regular file that is not on the list** — including the Rust generated
+`wallet_engine.cpp`, which the CMake configure then cannot find.
+
+The keep list must therefore protect:
+
+* `*/src/wallet_engine/*` — the generated source,
+* `*/tlottie/*` and `*/wallet-engine/*` — the Rust checkouts, minus their
+  `target` directories,
+* the empty directories under those two checkouts.
+
+These are exactly the rules upstream's canary workflow already carries, and
+`mac.yml` and `win.yml` now use the same expression verbatim. Changing the
+prune without them breaks the Windows and macOS builds with
+`Cannot find source file: .../tdesktop_rust/out/src/wallet_engine/wallet_engine.cpp`.
+
+`mac_packaged.yml` has no prune at all, which is why it was never affected.
+
 ## The branding
 
 The product name, the bundle identifiers, the file names and the URLs all come
