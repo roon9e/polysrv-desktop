@@ -401,6 +401,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_servers_loaded#one" = "{count} server";
 "lng_polysrv_servers_loaded#other" = "{count} servers";
 "lng_polysrv_add_server" = "Add server";
+"lng_polysrv_server_added" = "The server {name} is added. Choose it when you add an account.";
 "lng_polysrv_edit_server" = "Edit server";
 "lng_polysrv_new_server" = "New server";
 "lng_polysrv_server_name" = "Name";
@@ -427,6 +428,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_server_delete_confirm" = "Delete the server \"{name}\"?";
 "lng_polysrv_server_delete_confirm_accounts#one" = "Delete the server \"{name}\"? {count} signed-in account will be logged out.";
 "lng_polysrv_server_delete_confirm_accounts#other" = "Delete the server \"{name}\"? {count} signed-in accounts will be logged out.";
+"lng_polysrv_server_move" = "Log Out and Move";
+"lng_polysrv_server_move_confirm#one" = "Changing the address or the key of \"{name}\" logs out {count} account and moves it to the new address.";
+"lng_polysrv_server_move_confirm#other" = "Changing the address or the key of \"{name}\" logs out {count} accounts and moves them to the new address.";
 "lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 

@@ -85,6 +85,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/cached_round_corners.h"
 #include "ui/power_saving.h"
 #include "ui/screen_reader_mode.h"
+#include "ui/toast/toast.h"
 #include "storage/storage_domain.h"
 #include "storage/storage_databases.h"
 #include "storage/storage_folder_archive.h"
@@ -1360,21 +1361,16 @@ bool Application::openServerLink(
 		// The key is never taken from the link: a key in a link is a
 		// man in the middle vector, because the key that answers for a
 		// host and a port is the only thing that is ever trusted.
-		const auto server = PolySrv::AddCustomServer(
-			link.host,
-			link.host,
-			link.port);
-		if (!server) {
+		if (!PolySrv::AddCustomServer(link.host, link.host, link.port)) {
 			return false;
 		}
-		for (const auto &account : _domain->orderedAccounts()) {
-			if (account->sessionExists()) {
-				account->applyServer(
-					server->id,
-					server->host,
-					server->port);
-			}
-		}
+		// WHY: a link only adds the server. Rebinding the accounts that
+		// are signed in would log them out, and the added server has no
+		// key yet, so it cannot accept a sign-in either.
+		Ui::Toast::Show(tr::lng_polysrv_server_added(
+			tr::now,
+			lt_name,
+			link.host));
 		return true;
 	}
 	case PolySrv::Link::Type::Command: {

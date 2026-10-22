@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 
 #include <QtCore/QFile>
+#include <QtCore/QPointer>
 #include <QtGui/QFontMetrics>
 #include <QtGui/QPainterPath>
 #include <QtGui/QPixmap>
@@ -73,6 +74,29 @@ constexpr auto kMaxMainDcId = 5;
 		}
 	}
 	return result;
+}
+
+// The scope of an account is the host it joined with, so the host, the
+// port and the key cannot change under an account that already uses it.
+[[nodiscard]] bool RebindsAccounts(
+		const Server &server,
+		const QString &host,
+		int port,
+		const QString &rsaPublicKey) {
+	return server.primaryHost().compare(host, Qt::CaseInsensitive) != 0
+		|| server.primaryPort() != port
+		|| server.rsaPublicKey != rsaPublicKey;
+}
+
+void MoveAccountsToServer(
+		const std::vector<not_null<Main::Account*>> &accounts,
+		const Server &server) {
+	for (const auto &account : accounts) {
+		account->applyServer(
+			server.id,
+			server.primaryHost(),
+			server.primaryPort());
+	}
 }
 
 void DeleteServer(const Server &server, Fn<void()> changed) {
@@ -578,18 +602,23 @@ void ShowServerListBox() {
 	Ui::show(Box([](not_null<Ui::GenericBox*> box) {
 		box->setTitle(tr::lng_polysrv_servers_title());
 
-		for (const auto &server : Servers()) {
-			const auto id = server.id;
-			const auto row = box->addRow(object_ptr<Ui::LinkButton>(
-				box,
-				ServerRowLabel(server),
-				st::boxLinkButton));
-			row->setClickedCallback([=] {
-				if (const auto found = FindServer(id)) {
-					ShowServerDetailsBox(*found, nullptr);
-				}
-			});
-		}
+		const auto fill = [=] {
+			box->verticalLayout()->clear();
+			for (const auto &server : Servers()) {
+				const auto id = server.id;
+				const auto row = box->addRow(object_ptr<Ui::LinkButton>(
+					box,
+					ServerRowLabel(server),
+					st::boxLinkButton));
+				row->setClickedCallback([=] {
+					if (const auto found = FindServer(id)) {
+						ShowServerDetailsBox(*found, nullptr);
+					}
+				});
+			}
+		};
+		fill();
+		ServersChanged() | rpl::on_next(fill, box->lifetime());
 
 		box->addButton(tr::lng_polysrv_add_server(), [] {
 			ShowServerEditBox(std::nullopt);
@@ -678,26 +707,73 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 				: mainDcText.toInt();
 			const auto serverDescription = description->getLastText().trimmed();
 			const auto serverKey = key->getLastText().trimmed();
-			const auto written = editing
-				? UpdateCustomServer(
-					editingId,
-					serverName,
-					serverHost,
-					serverPort,
-					serverDescription,
-					serverKey,
-					isMultiDc,
-					mainDcId)
-				: AddCustomServer(
-					serverName,
-					serverHost,
-					serverPort,
-					serverDescription,
-					serverKey,
-					isMultiDc,
-					mainDcId);
-			if (!written) {
-				host->showError();
+			const auto write = [=]() -> std::optional<Server> {
+				const auto written = editing
+					? UpdateCustomServer(
+						editingId,
+						serverName,
+						serverHost,
+						serverPort,
+						serverDescription,
+						serverKey,
+						isMultiDc,
+						mainDcId)
+					: AddCustomServer(
+						serverName,
+						serverHost,
+						serverPort,
+						serverDescription,
+						serverKey,
+						isMultiDc,
+						mainDcId);
+				if (!written) {
+					host->showError();
+				}
+				return written;
+			};
+			if (editing) {
+				const auto previous = FindServer(editingId);
+				const auto affected = previous
+					? AccountsUsingServer(*previous)
+					: std::vector<not_null<Main::Account*>>();
+				if (previous
+					&& !affected.empty()
+					&& RebindsAccounts(
+						*previous,
+						serverHost,
+						serverPort,
+						serverKey)) {
+					const auto weak = QPointer<Ui::GenericBox>(box.data());
+					Ui::show(Ui::MakeConfirmBox({
+						.text = tr::lng_polysrv_server_move_confirm(
+							tr::now,
+							lt_count,
+							float64(affected.size()),
+							lt_name,
+							serverName),
+						.confirmed = [=](Fn<void()> close) {
+							if (!weak) {
+								close();
+								return;
+							}
+							if (const auto moved = write()) {
+								if (changed) {
+									changed();
+								}
+								if (const auto editBox = weak.data()) {
+									editBox->closeBox();
+								}
+								MoveAccountsToServer(affected, *moved);
+							}
+							close();
+						},
+						.confirmText = tr::lng_polysrv_server_move(),
+						.confirmStyle = &st::attentionBoxButton,
+					}), Ui::LayerOption::KeepOther);
+					return;
+				}
+			}
+			if (!write()) {
 				return;
 			}
 			if (changed) {
