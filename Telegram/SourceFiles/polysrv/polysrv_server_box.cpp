@@ -169,8 +169,8 @@ void ShowServerEditBox(std::optional<Server> server) {
 				: mainDcText.toInt();
 			const auto serverDescription = description->getLastText().trimmed();
 			const auto serverKey = key->getLastText().trimmed();
-			if (editing) {
-				UpdateCustomServer(
+			const auto written = editing
+				? UpdateCustomServer(
 					editingId,
 					serverName,
 					serverHost,
@@ -178,9 +178,8 @@ void ShowServerEditBox(std::optional<Server> server) {
 					serverDescription,
 					serverKey,
 					isMultiDc,
-					mainDcId);
-			} else {
-				AddCustomServer(
+					mainDcId)
+				: AddCustomServer(
 					serverName,
 					serverHost,
 					serverPort,
@@ -188,14 +187,18 @@ void ShowServerEditBox(std::optional<Server> server) {
 					serverKey,
 					isMultiDc,
 					mainDcId);
+			if (!written) {
+				host->showError();
+				return;
 			}
 			box->closeBox();
 		};
 		box->addButton(tr::lng_settings_save(), save);
 		if (editing) {
 			box->addButton(tr::lng_box_remove(), [=] {
-				RemoveCustomServer(editingId);
-				box->closeBox();
+				if (RemoveCustomServer(editingId)) {
+					box->closeBox();
+				}
 			}, st::attentionBoxButton);
 		}
 		box->addButton(tr::lng_cancel(), [=] {

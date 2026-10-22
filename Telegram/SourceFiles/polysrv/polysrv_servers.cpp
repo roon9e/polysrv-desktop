@@ -283,19 +283,19 @@ uint64 ServerScopeHash(const QString &host) {
 	const auto utf8 = host.toLower().toUtf8();
 	auto hash = quint32(2166136261u);
 	for (const auto byte : utf8) {
-		hash ^= quint32(byte);
+		hash ^= quint32(quint8(byte));
 		hash *= quint32(16777619u);
 	}
-	return hash & 0xFFFF;
+	return uint64(hash) << 24;
 }
 
 uint64 ScopedSessionId(uint64 sessionId, const QString &scope) {
 	if (scope.isEmpty()) {
 		return sessionId;
 	}
-	// The scope goes into the bits 40 to 55, which the test mode bit
-	// above 56 does not touch.
-	return sessionId ^ (ServerScopeHash(scope) << 40);
+	// The scope goes into the bits 24 to 55, so the low bits of the id
+	// stay and the test mode bit above 56 stays untouched.
+	return sessionId ^ ServerScopeHash(scope);
 }
 
 int MainDcIdForServer(const Server &server) {
