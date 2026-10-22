@@ -277,7 +277,6 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/local/tdesktop_rust
           key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
-          overwrite: true
 
       - name: Save RNNoise cache on failure.
         if: >
@@ -288,7 +287,6 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/local/rnnoise
           key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
-          overwrite: true
 
       - name: Save WebRTC cache on failure.
         if: >
@@ -299,7 +297,6 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/local/tg_owt
           key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
-          overwrite: true
 
       - name: Save TDE2E cache on failure.
         if: >
@@ -310,4 +307,3 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/local/tde2e
           key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
-          overwrite: true
