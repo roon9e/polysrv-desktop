@@ -13,7 +13,7 @@ ENV PKG_CONFIG_PATH=/opt/rh/$TOOLSET/root/usr/lib64/pkgconfig:/opt/rh/$TOOLSET/r
 RUN --mount=type=cache,target=/var/cache/dnf <<EOF
 retry() {
 	for i in 1 2 3 4 5; do
-		"\$@" && return 0
+		"$@" && return 0
 		sleep 10
 	done
 	return 1
@@ -21,7 +21,7 @@ retry() {
 retry dnf -y update ca-certificates
 retry dnf -y install epel-release
 dnf config-manager --set-enabled powertools
-retry dnf -y install cmake autoconf automake libtool pkgconfig make patch git \
+retry dnf -y --refresh install cmake autoconf automake libtool pkgconfig make patch git \
 	python3.11-pip python3.11-devel gperf flex bison clang-tools-extra \
 	lld ccache nasm file which wget perl-open perl-XML-Parser perl-IPC-Cmd \
 	perl-Time-Piece \
