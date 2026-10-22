@@ -157,6 +157,7 @@ jobs:
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
 
       - name: Libraries.
+        id: libraries
         run: |
           %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
 
@@ -245,3 +246,43 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact\
           retention-days: 1
+
+      - name: Save ThirdParty cache on failure.
+        if: >
+          failure()
+            && steps.cache-third-party.outputs.cache-hit != 'true'
+            && steps.libraries.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          overwrite: true
+
+      - name: Save Libraries cache on failure.
+        if: >
+          failure()
+            && steps.cache-libs.outputs.cache-hit != 'true'
+            && steps.libraries.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-${{ env.CACHE_KEY }}
+          overwrite: true
+
+      - name: Save Qt cache on failure.
+        if: >
+          failure()
+            && steps.cache-qt.outputs.cache-hit != 'true'
+            && steps.libraries.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
+          overwrite: true

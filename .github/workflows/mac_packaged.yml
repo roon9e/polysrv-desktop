@@ -110,6 +110,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/local/tdesktop_rust
           key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
       - name: Rust libraries.
+        id: rust-libs
         if: steps.cache-tdesktop-rust.outputs.cache-hit != 'true'
         run: |
           cd "$LibrariesPath"
@@ -170,6 +171,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/local/rnnoise
           key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
       - name: RNNoise.
+        id: rnnoise
         if: steps.cache-rnnoise.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
@@ -188,6 +190,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/local/tg_owt
           key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
       - name: WebRTC.
+        id: webrtc
         if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
@@ -206,6 +209,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/local/tde2e
           key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
       - name: TDE2E.
+        id: tde2e
         if: steps.cache-tde2e.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
@@ -259,3 +263,47 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/build/artifact/
           retention-days: 1
+
+      - name: Save Rust libraries cache on failure.
+        if: >
+          failure()
+            && steps.cache-tdesktop-rust.outputs.cache-hit != 'true'
+            && steps.rust-libs.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.LibrariesPath }}/local/tdesktop_rust
+          key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
+          overwrite: true
+
+      - name: Save RNNoise cache on failure.
+        if: >
+          failure()
+            && steps.cache-rnnoise.outputs.cache-hit != 'true'
+            && steps.rnnoise.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.LibrariesPath }}/local/rnnoise
+          key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
+          overwrite: true
+
+      - name: Save WebRTC cache on failure.
+        if: >
+          failure()
+            && steps.cache-webrtc.outputs.cache-hit != 'true'
+            && steps.webrtc.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.LibrariesPath }}/local/tg_owt
+          key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
+          overwrite: true
+
+      - name: Save TDE2E cache on failure.
+        if: >
+          failure()
+            && steps.cache-tde2e.outputs.cache-hit != 'true'
+            && steps.tde2e.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.LibrariesPath }}/local/tde2e
+          key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
+          overwrite: true

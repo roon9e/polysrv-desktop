@@ -106,6 +106,7 @@ jobs:
           skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
 
       - name: Libraries.
+        id: build-libs
         uses: docker/build-push-action@v7
         with:
           context: Telegram/build/docker/centos_env
@@ -129,6 +130,7 @@ jobs:
           restore-keys: ${{ runner.OS }}-tdesktop-${{ matrix.defines || 'null' }}-
 
       - name: Telegram Desktop build.
+        id: build
         if: env.ONLY_CACHE == 'false'
         run: |
           DEFINE=""
@@ -161,7 +163,10 @@ jobs:
 
       - name: Count ccache misses.
         id: ccache-stats
-        if: env.ONLY_CACHE == 'false'
+        if: >-
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
         run: |
           MISSES=$(ccache --print-stats | sed -n 's/^cache_miss\t//p' | head -1)
           case "$MISSES" in (*[!0-9]*|'') MISSES=0;; esac
@@ -170,13 +175,17 @@ jobs:
 
       - name: Trim Telegram Desktop cache.
         if: >
-          env.ONLY_CACHE == 'false'
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
         run: ccache --evict-older-than 1d
 
       - name: Save Telegram Desktop cache.
         if: >
-          env.ONLY_CACHE == 'false'
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
         uses: actions/cache/save@v6
         with:
@@ -211,3 +220,16 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: out/Debug/artifact/
           retention-days: 1
+
+      - name: Save Libraries cache on failure.
+        if: >
+          failure()
+            && steps.cache-libs.outputs.cache-hit != 'true'
+            && steps.build-libs.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+          overwrite: true

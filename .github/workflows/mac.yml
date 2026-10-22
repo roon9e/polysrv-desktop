@@ -90,6 +90,7 @@ jobs:
           restore-keys: ${{ runner.OS }}-libs-
 
       - name: Libraries.
+        id: libraries
         run: |
           ./$REPO_NAME/Telegram/build/prepare/mac.sh skip-release silent
 
@@ -135,3 +136,16 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/out/Debug/artifact/
           retention-days: 1
+
+      - name: Save Libraries cache on failure.
+        if: >
+          failure()
+            && steps.cache-libs.outputs.cache-hit != 'true'
+            && steps.libraries.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          overwrite: true
