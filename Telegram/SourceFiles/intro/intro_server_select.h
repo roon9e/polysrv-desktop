@@ -52,7 +52,6 @@ private:
 	Ui::LinkButton *_addServer = nullptr;
 	Ui::FlatLabel *_status = nullptr;
 	QString _selectedId;
-
 };
 
 } // namespace details
