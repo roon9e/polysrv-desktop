@@ -179,7 +179,7 @@ jobs:
             && env.ONLY_CACHE == 'false'
             && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
-        run: ccache --evict-older-than 1d
+        run: ccache --evict-older-than 7d
 
       - name: Save Telegram Desktop cache.
         if: >
