@@ -281,6 +281,57 @@ void RequestRemoteList(
 	});
 }
 
+// WHY: the check owns its socket and timer, so it must not also hand them to
+// deleteLater: the last reference lives inside their own connections and the
+// second release then frees a dead object.
+class OnlineCheck final : public QObject {
+public:
+	OnlineCheck(const Server &server, Fn<void(bool, int)> done);
+
+private:
+	void finish(bool online);
+
+	QTcpSocket _socket;
+	QTimer _deadline;
+	Fn<void(bool, int)> _done;
+	crl::time _started = 0;
+	bool _finished = false;
+
+};
+
+OnlineCheck::OnlineCheck(const Server &server, Fn<void(bool, int)> done)
+: _done(std::move(done))
+, _started(crl::now()) {
+	_deadline.setSingleShot(true);
+	QObject::connect(&_socket, &QTcpSocket::connected, this, [=] {
+		finish(true);
+	});
+	QObject::connect(&_socket, &QAbstractSocket::errorOccurred, this,
+	[=](QAbstractSocket::SocketError) {
+		finish(false);
+	});
+	QObject::connect(&_deadline, &QTimer::timeout, this, [=] {
+		finish(false);
+	});
+	_deadline.start(kCheckTimeout);
+	_socket.connectToHost(server.primaryHost(), server.primaryPort());
+}
+
+void OnlineCheck::finish(bool online) {
+	if (_finished) {
+		return;
+	}
+	_finished = true;
+	_deadline.stop();
+	_socket.abort();
+	const auto latency = online ? int(crl::now() - _started) : -1;
+	const auto done = std::move(_done);
+	if (done) {
+		done(online, latency);
+	}
+	deleteLater();
+}
+
 } // namespace
 
 uint64 ServerScopeHash(const QString &host) {
@@ -540,38 +591,7 @@ void CheckServerOnline(
 		done(false, -1);
 		return;
 	}
-	const auto socket = std::make_shared<QTcpSocket>();
-	const auto finished = std::make_shared<bool>(false);
-	const auto deadline = std::make_shared<QTimer>();
-	const auto started = crl::now();
-	const auto finish = [=](bool online) {
-		if (*finished) {
-			return;
-		}
-		*finished = true;
-		deadline->stop();
-		const auto latency = online ? int(crl::now() - started) : -1;
-		socket->abort();
-		socket->deleteLater();
-		deadline->deleteLater();
-		done(online, latency);
-	};
-	QObject::connect(socket.get(), &QTcpSocket::connected, socket.get(), [=] {
-		finish(true);
-	});
-	QObject::connect(
-		socket.get(),
-		&QAbstractSocket::errorOccurred,
-		socket.get(),
-		[=](QAbstractSocket::SocketError) {
-			finish(false);
-		});
-	deadline->setSingleShot(true);
-	QObject::connect(deadline.get(), &QTimer::timeout, deadline.get(), [=] {
-		finish(false);
-	});
-	deadline->start(kCheckTimeout);
-	socket->connectToHost(server.primaryHost(), server.primaryPort());
+	new OnlineCheck(server, std::move(done));
 }
 
 } // namespace PolySrv
