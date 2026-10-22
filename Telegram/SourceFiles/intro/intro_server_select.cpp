@@ -10,10 +10,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "intro/intro_qr.h"
 #include "lang/lang_keys.h"
 #include "main/main_account.h"
+#include "polysrv/polysrv_server_box.h"
 #include "polysrv/polysrv_servers.h"
 #include "styles/style_intro.h"
 #include "ui/qt_object_factory.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/labels.h"
 
 #include <rpl/producer.h>
 
@@ -25,7 +27,28 @@ namespace details {
 namespace {
 
 [[nodiscard]] QString ServerLabel(const PolySrv::Server &server) {
-	return server.name + u"  \u00b7  "_q + server.endpoint();
+	return server.name + u" \u00b7 "_q + server.endpoint();
+}
+
+[[nodiscard]] QString StatusText() {
+	const auto state = PolySrv::Remote();
+	switch (state.status) {
+	case PolySrv::RemoteStatus::Idle:
+		return QString();
+	case PolySrv::RemoteStatus::Loading:
+		return tr::lng_polysrv_servers_loading(tr::now);
+	case PolySrv::RemoteStatus::Succeeded:
+		return tr::lng_polysrv_servers_loaded(
+			tr::now,
+			lt_count,
+			state.count);
+	case PolySrv::RemoteStatus::Failed:
+		return tr::lng_polysrv_servers_failed(
+			tr::now,
+			lt_error,
+			state.error);
+	}
+	return QString();
 }
 
 } // namespace
@@ -66,6 +89,22 @@ void ServerSelectWidget::fillRows() {
 			chooseServer(id);
 		});
 	}
+	_addServer = Ui::CreateChild<Ui::LinkButton>(
+		_container.get(),
+		tr::lng_polysrv_add_server(tr::now),
+		st::introServerAdd);
+	_addServer->setClickedCallback([] {
+		PolySrv::ShowServerListBox();
+	});
+	_status = Ui::CreateChild<Ui::FlatLabel>(
+		_container.get(),
+		StatusText(),
+		st::introServerStatus);
+
+	// A step is already visible when the rows are rebuilt after the remote
+	// list arrives, so a child created now is not shown by its parent.
+	_container->show();
+
 	updateRowsGeometry();
 }
 
@@ -80,6 +119,16 @@ void ServerSelectWidget::updateRowsGeometry() {
 		button->moveToLeft(0, y);
 		y += button->height() + st::introServerRowSpacing;
 	}
+	if (_addServer) {
+		_addServer->resizeToWidth(width);
+		_addServer->moveToLeft(0, y);
+		y += _addServer->height() + st::introServerRowSpacing;
+	}
+	if (_status) {
+		_status->resizeToWidth(width);
+		_status->moveToLeft(0, y);
+		y += _status->height() + st::introServerRowSpacing;
+	}
 	_container->resize(width, y);
 	_container->move(
 		contentLeft(),
@@ -92,7 +141,10 @@ void ServerSelectWidget::chooseServer(const QString &id) {
 		if (server.id != id) {
 			continue;
 		}
-		account().applyServer(server.id, server.host, server.port);
+		account().applyServer(
+			server.id,
+			server.primaryHost(),
+			server.primaryPort());
 		_selectedId = server.id;
 		goNext<QrWidget>();
 		return;

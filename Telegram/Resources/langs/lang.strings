@@ -395,6 +395,21 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_server_description" = "The server your account signs in to.";
 "lng_polysrv_server_continue" = "Continue";
 "lng_polysrv_tg_link_needs_telegram" = "This link belongs to the official Telegram network. Switch to a Telegram account to open it.";
+"lng_polysrv_servers_title" = "Servers";
+"lng_polysrv_servers_loading" = "Loading the server list...";
+"lng_polysrv_servers_failed" = "Could not load the server list: {error}";
+"lng_polysrv_servers_loaded#one" = "{count} server";
+"lng_polysrv_servers_loaded#other" = "{count} servers";
+"lng_polysrv_add_server" = "Add server";
+"lng_polysrv_edit_server" = "Edit server";
+"lng_polysrv_new_server" = "New server";
+"lng_polysrv_server_name" = "Name";
+"lng_polysrv_server_description_field" = "Description (optional)";
+"lng_polysrv_server_host" = "Host or IP address";
+"lng_polysrv_server_port" = "Port";
+"lng_polysrv_server_main_dc" = "Main data center (1-5)";
+"lng_polysrv_server_multi_dc" = "Multi-DC server";
+"lng_polysrv_server_rsa_key" = "RSA public key (PEM)";
 "lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 

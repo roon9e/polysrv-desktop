@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <vector>
 
 namespace Ui {
+class FlatLabel;
 class LinkButton;
 } // namespace Ui
 
@@ -48,6 +49,8 @@ private:
 
 	object_ptr<QWidget> _container = { nullptr };
 	std::vector<Ui::LinkButton*> _rows;
+	Ui::LinkButton *_addServer = nullptr;
+	Ui::FlatLabel *_status = nullptr;
 	QString _selectedId;
 
 };

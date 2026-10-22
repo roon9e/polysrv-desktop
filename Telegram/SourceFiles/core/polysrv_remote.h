@@ -20,4 +20,8 @@ namespace PolySrv {
 [[nodiscard]] QString ServersUrl();
 [[nodiscard]] QString UpdateManifestUrl();
 
+// The same server list in the repository branch that publishes the domain,
+// for when the Pages site itself is unreachable.
+[[nodiscard]] QString ServersFallbackUrl();
+
 } // namespace PolySrv

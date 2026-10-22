@@ -1885,6 +1885,8 @@ PRIVATE
     profile/profile_cover_drop_area.h
     polysrv/polysrv_links.cpp
     polysrv/polysrv_links.h
+    polysrv/polysrv_server_box.cpp
+    polysrv/polysrv_server_box.h
     polysrv/polysrv_servers.cpp
     polysrv/polysrv_servers.h
     settings/business/settings_away_message.cpp

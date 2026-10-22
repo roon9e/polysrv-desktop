@@ -95,6 +95,8 @@ introFragmentButton: RoundButton(introNextButton) {
 
 introStepFieldTop: 96px;
 introServerRowSpacing: 8px;
+introServerAdd: LinkButton(introLink);
+introServerStatus: FlatLabel(defaultFlatLabel);
 introPhoneTop: 6px;
 introLinkTop: 24px;
 introCountry: InputField(defaultInputField) {
