@@ -145,6 +145,12 @@ void Account::applyServer(
 	}
 	// The official Telegram network is the default one, so it leaves the
 	// selection empty and the scope of the account empty with it.
+	if (sessionExists()) {
+		// The session and the data of the account belong to the old
+		// server, and the session holds the old connection, so the
+		// session goes before the connection is replaced.
+		loggedOut();
+	}
 	local().writeServerSelection(selection);
 	_serverScope = selection.host.toLower();
 	resetAuthorizationKeys();

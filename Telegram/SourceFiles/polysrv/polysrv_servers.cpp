@@ -226,6 +226,10 @@ void ApplyServerToDcOptions(MTP::DcOptions &options, const Server &server) {
 	}
 	options.setFromList(MTP_vector<MTPDcOption>(list));
 	if (server.rsaPublicKey.isEmpty()) {
+		// Without the key of the server the handshake cannot complete,
+		// so the account cannot connect to it.
+		LOG(("PolySRV Error: the server %1 has no public RSA key.")
+			.arg(server.endpoint()));
 		options.setBuiltInPublicKeys();
 	} else {
 		options.setPublicKeysFromPem(server.rsaPublicKey);

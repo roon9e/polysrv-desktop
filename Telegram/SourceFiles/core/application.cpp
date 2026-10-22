@@ -1310,20 +1310,28 @@ void Application::registerWindowActivation(not_null<QWidget*> window) {
 
 bool Application::openLocalUrl(const QString &url, QVariant context) {
 	const auto urlTrimmed = url.trimmed();
-	if (urlTrimmed.startsWith(u"srv://"_q, Qt::CaseInsensitive)) {
+	if (!passcodeLocked()
+		&& urlTrimmed.startsWith(u"srv://"_q, Qt::CaseInsensitive)) {
 		return openServerLink(urlTrimmed, context);
 	}
+	return openTelegramUrl(urlTrimmed, context, false);
+}
+
+bool Application::openTelegramUrl(
+		const QString &url,
+		QVariant context,
+		bool serverRouted) {
 	const auto protocol = u"tg://"_q;
-	if (urlTrimmed.startsWith(protocol, Qt::CaseInsensitive)
+	if (url.startsWith(protocol, Qt::CaseInsensitive)
 		&& !passcodeLocked()) {
-		const auto command = urlTrimmed.mid(protocol.size());
+		const auto command = url.mid(protocol.size());
 		const auto my = context.value<ClickHandlerContext>();
 		const auto controller = my.sessionWindow.get()
 			? my.sessionWindow.get()
 			: _lastActivePrimaryWindow
 			? _lastActivePrimaryWindow->sessionController()
 			: nullptr;
-		if (controller) {
+		if (controller && !serverRouted) {
 			const auto &account = controller->session().account();
 			if (!account.serverScope().isEmpty()) {
 				// A tg link belongs to the official Telegram network,
@@ -1394,12 +1402,12 @@ bool Application::openServerLink(
 				const auto rest = link.rest;
 				InvokeQueued(this, [=] {
 					_domain->maybeActivate(account);
-					openLocalUrl(u"tg://"_q + rest, context);
+					openTelegramUrl(u"tg://"_q + rest, context, true);
 				});
 				return true;
 			}
 		}
-		return openLocalUrl(u"tg://"_q + link.rest, context);
+		return openTelegramUrl(u"tg://"_q + link.rest, context, false);
 	}
 	default:
 		return false;

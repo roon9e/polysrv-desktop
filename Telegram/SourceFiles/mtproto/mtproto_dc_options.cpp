@@ -164,18 +164,20 @@ void DcOptions::setBuiltInPublicKeys() {
 
 void DcOptions::setPublicKeysFromPem(const QString &pem) {
 	WriteLocker lock(this);
-	_publicKeys.clear();
 	const auto trimmed = pem.trimmed();
 	if (trimmed.isEmpty()) {
 		return;
 	}
 	const auto utf8 = trimmed.toUtf8();
 	auto parsed = RSAPublicKey(bytes::make_span(utf8));
-	if (parsed.valid()) {
-		_publicKeys.emplace(parsed.fingerprint(), std::move(parsed));
+	if (!parsed.valid()) {
+		// The keys that are trusted stay, so that a key that cannot be
+		// read does not leave the account without a way to connect.
+		LOG(("MTP Error: could not read the public RSA key of the server."));
 		return;
 	}
-	LOG(("MTP Error: could not read the public RSA key of the server."));
+	_publicKeys.clear();
+	_publicKeys.emplace(parsed.fingerprint(), std::move(parsed));
 }
 
 void DcOptions::setOptionsLocked(bool locked) {

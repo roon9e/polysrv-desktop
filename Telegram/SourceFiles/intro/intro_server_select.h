@@ -46,7 +46,7 @@ private:
 	void chooseServer(const QString &id);
 	[[nodiscard]] PolySrv::Server currentServer() const;
 
-	object_ptr<QWidget> _container;
+	object_ptr<QWidget> _container = { nullptr };
 	std::vector<Ui::LinkButton*> _rows;
 	QString _selectedId;
 
