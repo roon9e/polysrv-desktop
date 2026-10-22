@@ -71,7 +71,14 @@ constexpr auto kMaxRemoteResponseSize = 256 * 1024;
 	server.port = object.value("port").toInt();
 	server.description = object.value("description").toString();
 	server.rsaPublicKey = object.value("rsaPublicKey").toString();
+	if (server.rsaPublicKey.isEmpty()) {
+		// The published list names the key the way the upstream fork does.
+		server.rsaPublicKey = object.value("rsaPublicKeyPem").toString();
+	}
 	server.logoPath = object.value("logoPath").toString();
+	if (server.logoPath.isEmpty()) {
+		server.logoPath = object.value("logoUrl").toString();
+	}
 	server.multiDc = object.value("multiDc").toBool();
 	server.mainDcId = object.value("mainDcId").toInt();
 	return server;

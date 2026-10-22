@@ -110,3 +110,9 @@ The server list and the update manifest are published from the `gh-pages`
 branch and served from `https://roon9e.github.io/polysrv-desktop/`. The
 `gh-pages` branch is rewritten by hand, with `gh api`, and holds only the
 static files.
+
+The server list is a JSON object with a `servers` array, and every entry is a
+server record: `id`, `name`, `host`, `port`, `description`, `rsaPublicKey`,
+`logoPath`, `multiDc` and `mainDcId`. The client reads `rsaPublicKeyPem` and
+`logoUrl` as well, because the published list uses the names of the upstream
+fork for them.
