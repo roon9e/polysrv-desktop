@@ -58,7 +58,7 @@ void ServerSelectWidget::fillRows() {
 	_rows.reserve(servers.size());
 	for (const auto &server : servers) {
 		auto button = Ui::CreateChild<Ui::LinkButton>(
-			_container,
+			_container.get(),
 			ServerLabel(server));
 		_rows.push_back(button);
 		const auto id = server.id;
