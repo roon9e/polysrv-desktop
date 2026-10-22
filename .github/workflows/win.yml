@@ -169,13 +169,13 @@ jobs:
           $ErrorActionPreference = 'SilentlyContinue'
           $patterns = @(
             'C:\ProgramData\Package Cache',
-            'C:\ProgramData\Microsoft\VisualStudio\Packages',
             'C:\Program Files\dotnet',
             'C:\Program Files\nodejs',
             'C:\Program Files\Google\Chrome',
             'C:\Program Files (x86)\Microsoft\Edge',
             'C:\Program Files\Mozilla Firefox',
             'C:\Program Files\Android',
+            'C:\Program Files\MongoDB',
             'C:\Program Files\Microsoft\jdk*',
             'C:\hostedtoolcache\windows\Java',
             'C:\hostedtoolcache\windows\Go',
@@ -188,6 +188,9 @@ jobs:
             'C:\hostedtoolcache\windows\Kotlin',
             'C:\hostedtoolcache\windows\Sbt',
             'C:\hostedtoolcache\windows\Stack',
+            'C:\vcpkg',
+            'C:\ProgramData\chocolatey\logs',
+            'C:\Windows\SoftwareDistribution\Download',
             'C:\Windows\Temp'
           )
           foreach ($pattern in $patterns) {
