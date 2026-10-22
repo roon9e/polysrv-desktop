@@ -163,6 +163,43 @@ jobs:
           key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
 
+      - name: Free up the runner.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          $patterns = @(
+            'C:\ProgramData\Package Cache',
+            'C:\ProgramData\Microsoft\VisualStudio\Packages',
+            'C:\Program Files\dotnet',
+            'C:\Program Files\nodejs',
+            'C:\Program Files\Google\Chrome',
+            'C:\Program Files (x86)\Microsoft\Edge',
+            'C:\Program Files\Mozilla Firefox',
+            'C:\Program Files\Android',
+            'C:\Program Files\Microsoft\jdk*',
+            'C:\hostedtoolcache\windows\Java',
+            'C:\hostedtoolcache\windows\Go',
+            'C:\hostedtoolcache\windows\Ruby',
+            'C:\hostedtoolcache\windows\PyPy',
+            'C:\hostedtoolcache\windows\node',
+            'C:\hostedtoolcache\windows\CodeQL',
+            'C:\hostedtoolcache\windows\Rust',
+            'C:\hostedtoolcache\windows\Bazel',
+            'C:\hostedtoolcache\windows\Kotlin',
+            'C:\hostedtoolcache\windows\Sbt',
+            'C:\hostedtoolcache\windows\Stack',
+            'C:\ProgramData\chocolatey\lib',
+            'C:\Windows\Temp'
+          )
+          foreach ($pattern in $patterns) {
+            Get-Item -Path $pattern | ForEach-Object {
+              "Removing $($_.FullName)"
+              Remove-Item -Recurse -Force $_.FullName
+            }
+          }
+          Get-PSDrive C | Select-Object Name,
+            @{n = 'FreeGB'; e = { [math]::Round($_.Free / 1GB, 2) } }
+
       - name: Libraries.
         id: libraries
         run: |
@@ -223,23 +260,6 @@ jobs:
           # Qt's package files reference the object dirs of its build.
           find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
           df -h /c
-
-      - name: Free up the runner.
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'SilentlyContinue'
-          $paths = @(
-            'C:\ProgramData\Package Cache',
-            "$env:USERPROFILE\.nuget\packages"
-          )
-          foreach ($path in $paths) {
-            if (Test-Path $path) {
-              "Removing $path"
-              Remove-Item -Recurse -Force $path
-            }
-          }
-          Get-PSDrive C | Select-Object Name,
-            @{n = 'FreeGB'; e = { [math]::Round($_.Free / 1GB, 2) } }
 
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
