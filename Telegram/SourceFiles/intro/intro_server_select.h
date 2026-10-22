@@ -9,49 +9,54 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "intro/intro_step.h"
 
-#include <QtCore/QString>
+#include "polysrv/polysrv_servers.h"
 
-#include <vector>
+#include <QtCore/QPointer>
 
 namespace Ui {
 class FlatLabel;
-class LinkButton;
+class RoundButton;
+class RpWidget;
+class ScrollArea;
 } // namespace Ui
-
-namespace PolySrv {
-struct Server;
-} // namespace PolySrv
 
 namespace Intro {
 namespace details {
 
 // The step that chooses the server an account signs in to.
-class ServerSelectWidget : public Step {
+class ServerSelectWidget final : public Step {
 public:
 	ServerSelectWidget(
 		QWidget *parent,
 		not_null<Main::Account*> account,
 		not_null<Data*> data);
 
-	void submit() override;
-	rpl::producer<QString> nextButtonText() const override;
+	void finishInit() override;
 	void activate() override;
-	void setInnerFocus() override;
+	void submit() override;
+	[[nodiscard]] rpl::producer<QString> nextButtonText() const override;
 
-protected:
 	void resizeEvent(QResizeEvent *e) override;
 
 private:
-	void fillRows();
+	void rebuildList();
+	void showDetails(const PolySrv::Server &server);
+	void joinServer(const PolySrv::Server &server);
+	void proceedJoin(const PolySrv::Server &server);
+	void updateListGeometry();
 	void updateRowsGeometry();
-	void chooseServer(const QString &id);
-	[[nodiscard]] PolySrv::Server currentServer() const;
+	void updateStatus();
+	[[nodiscard]] int listWidth() const;
+	[[nodiscard]] int listInnerWidth() const;
+	[[nodiscard]] int listPanelHeight(int panelTop) const;
 
-	object_ptr<QWidget> _container = { nullptr };
-	std::vector<Ui::LinkButton*> _rows;
-	Ui::LinkButton *_addServer = nullptr;
-	Ui::FlatLabel *_status = nullptr;
-	QString _selectedId;
+	QPointer<Ui::RpWidget> _panel;
+	QPointer<Ui::ScrollArea> _scroll;
+	QPointer<Ui::RpWidget> _rowsContainer;
+	QPointer<Ui::FlatLabel> _ownTitle;
+	QPointer<Ui::FlatLabel> _ownDescription;
+	QPointer<Ui::FlatLabel> _status;
+	object_ptr<Ui::RoundButton> _addServer;
 };
 
 } // namespace details

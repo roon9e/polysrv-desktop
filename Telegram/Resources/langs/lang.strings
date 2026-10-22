@@ -410,6 +410,23 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_server_main_dc" = "Main data center (1-5)";
 "lng_polysrv_server_multi_dc" = "Multi-DC server";
 "lng_polysrv_server_rsa_key" = "RSA public key (PEM)";
+"lng_polysrv_server_endpoint" = "{host} · Port {port}";
+"lng_polysrv_server_online" = "Online";
+"lng_polysrv_server_offline" = "Offline";
+"lng_polysrv_server_checking" = "Checking...";
+"lng_polysrv_server_latency" = "{latency} ms";
+"lng_polysrv_server_join" = "Join";
+"lng_polysrv_server_invalid" = "This server is not configured properly.";
+"lng_polysrv_server_offline_confirm" = "This server is not reachable right now. Try to connect anyway?";
+"lng_polysrv_server_details_title" = "Server";
+"lng_polysrv_server_details_host" = "Host";
+"lng_polysrv_server_details_port" = "Port";
+"lng_polysrv_server_details_description" = "Description";
+"lng_polysrv_server_details_status" = "Status";
+"lng_polysrv_server_delete" = "Delete";
+"lng_polysrv_server_delete_confirm" = "Delete the server \"{name}\"?";
+"lng_polysrv_server_delete_confirm_accounts#one" = "Delete the server \"{name}\"? {count} signed-in account will be logged out.";
+"lng_polysrv_server_delete_confirm_accounts#other" = "Delete the server \"{name}\"? {count} signed-in accounts will be logged out.";
 "lng_intro_about" = "Welcome to PolySRV Desktop.\nIt's fast and secure.";
 "lng_start_msgs" = "Start Messaging";
 

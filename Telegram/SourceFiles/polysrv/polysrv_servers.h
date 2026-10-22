@@ -112,6 +112,12 @@ void ApplyServerToDcOptions(MTP::DcOptions &options, const Server &server);
 // Fetches the server list from the remote domain and merges it in.
 void RefreshRemoteServers();
 
+// Opens a TCP connection to the server and reports whether it accepts one,
+// with the time it took in milliseconds as the latency, or -1 if it failed.
+void CheckServerOnline(
+	const Server &server,
+	Fn<void(bool online, int latencyMs)> done);
+
 // The state of the last remote list fetch, for the sign-in screen.
 [[nodiscard]] RemoteState Remote();
 

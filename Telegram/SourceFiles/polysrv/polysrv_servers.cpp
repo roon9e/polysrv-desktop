@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "polysrv/polysrv_servers.h"
 
 #include "base/debug_log.h"
+#include "base/timer.h"
 #include "core/polysrv_remote.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "rpl/event_stream.h"
@@ -18,11 +19,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QSaveFile>
+#include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QTcpSocket>
 
 #include <algorithm>
 #include <memory>
@@ -32,6 +35,7 @@ namespace PolySrv {
 namespace {
 
 constexpr auto kMaxRemoteResponseSize = 256 * 1024;
+constexpr auto kCheckTimeout = 5000;
 
 [[nodiscard]] QString CustomServersFile() {
 	return cWorkingDir() + u"tdata/polysrv_servers.json"_q;
@@ -527,6 +531,47 @@ RemoteState Remote() {
 
 rpl::producer<> ServersChanged() {
 	return StateInstance().changed.events();
+}
+
+void CheckServerOnline(
+		const Server &server,
+		Fn<void(bool online, int latencyMs)> done) {
+	if (!server.valid()) {
+		done(false, -1);
+		return;
+	}
+	const auto socket = std::make_shared<QTcpSocket>();
+	const auto finished = std::make_shared<bool>(false);
+	const auto deadline = std::make_shared<QTimer>();
+	const auto started = crl::now();
+	const auto finish = [=](bool online) {
+		if (*finished) {
+			return;
+		}
+		*finished = true;
+		deadline->stop();
+		const auto latency = online ? int(crl::now() - started) : -1;
+		socket->abort();
+		socket->deleteLater();
+		deadline->deleteLater();
+		done(online, latency);
+	};
+	QObject::connect(socket.get(), &QTcpSocket::connected, socket.get(), [=] {
+		finish(true);
+	});
+	QObject::connect(
+		socket.get(),
+		&QAbstractSocket::errorOccurred,
+		socket.get(),
+		[=](QAbstractSocket::SocketError) {
+			finish(false);
+		});
+	deadline->setSingleShot(true);
+	QObject::connect(deadline.get(), &QTimer::timeout, deadline.get(), [=] {
+		finish(false);
+	});
+	deadline->start(kCheckTimeout);
+	socket->connectToHost(server.primaryHost(), server.primaryPort());
 }
 
 } // namespace PolySrv
