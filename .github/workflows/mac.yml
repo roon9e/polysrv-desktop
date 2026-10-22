@@ -38,6 +38,10 @@ on:
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/configure.bat'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
 
   macos:
@@ -87,12 +91,22 @@ jobs:
             Libraries
             ThirdParty
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.OS }}-libs-
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
 
       - name: Libraries.
         id: libraries
         run: |
           ./$REPO_NAME/Telegram/build/prepare/mac.sh skip-release silent
+
+      - name: Save Libraries cache.
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          overwrite: true
 
       - name: Free up some disk space.
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -name 'macos_toolchain.json' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' -o -perm +111 ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
@@ -137,15 +151,3 @@ jobs:
           path: ${{ env.REPO_NAME }}/out/Debug/artifact/
           retention-days: 1
 
-      - name: Save Libraries cache on failure.
-        if: >
-          failure()
-            && steps.cache-libs.outputs.cache-hit != 'true'
-            && steps.libraries.outcome == 'success'
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            Libraries
-            ThirdParty
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          overwrite: true

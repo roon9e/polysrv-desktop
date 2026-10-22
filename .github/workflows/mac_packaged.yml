@@ -39,6 +39,10 @@ on:
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/configure.bat'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
 
   macos:
@@ -266,7 +270,7 @@ jobs:
 
       - name: Save Rust libraries cache on failure.
         if: >
-          failure()
+          (failure() || cancelled())
             && steps.cache-tdesktop-rust.outputs.cache-hit != 'true'
             && steps.rust-libs.outcome == 'success'
         uses: actions/cache/save@v6
@@ -277,7 +281,7 @@ jobs:
 
       - name: Save RNNoise cache on failure.
         if: >
-          failure()
+          (failure() || cancelled())
             && steps.cache-rnnoise.outputs.cache-hit != 'true'
             && steps.rnnoise.outcome == 'success'
         uses: actions/cache/save@v6
@@ -288,7 +292,7 @@ jobs:
 
       - name: Save WebRTC cache on failure.
         if: >
-          failure()
+          (failure() || cancelled())
             && steps.cache-webrtc.outputs.cache-hit != 'true'
             && steps.webrtc.outcome == 'success'
         uses: actions/cache/save@v6
@@ -299,7 +303,7 @@ jobs:
 
       - name: Save TDE2E cache on failure.
         if: >
-          failure()
+          (failure() || cancelled())
             && steps.cache-tde2e.outputs.cache-hit != 'true'
             && steps.tde2e.outcome == 'success'
         uses: actions/cache/save@v6
