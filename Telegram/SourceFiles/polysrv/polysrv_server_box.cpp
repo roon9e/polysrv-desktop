@@ -743,7 +743,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 						serverHost,
 						serverPort,
 						serverKey)) {
-					const auto weak = QPointer<Ui::GenericBox>(box.data());
+					const auto weak = QPointer<Ui::GenericBox>(box.get());
 					Ui::show(Ui::MakeConfirmBox({
 						.text = tr::lng_polysrv_server_move_confirm(
 							tr::now,
