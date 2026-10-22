@@ -42,11 +42,12 @@ protected:
 
 private:
 	void fillRows();
+	void updateRowsGeometry();
 	void chooseServer(const QString &id);
 	[[nodiscard]] PolySrv::Server currentServer() const;
 
 	object_ptr<QWidget> _container;
-	std::vector<object_ptr<Ui::LinkButton>> _rows;
+	std::vector<Ui::LinkButton*> _rows;
 	QString _selectedId;
 
 };

@@ -23,11 +23,11 @@ constexpr auto AppId = "{89FB394E-4848-466F-B1B2-57661CEAC51C}"_cs;
 constexpr auto AppNameOld = "Telegram Win (Unofficial)"_cs;
 constexpr auto AppName = Branding::AppName;
 constexpr auto AppFile = Branding::OutputName;
-constexpr auto AppVersion = 7003002;
-constexpr auto AppVersionStr = "7.3.2";
+constexpr auto AppVersion = 7003003;
+constexpr auto AppVersionStr = "7.3.3";
 // The PolySRV release number, counted within one official Telegram version.
 // The displayed version is the official version and this number, for example
-// 7.3.2.1 for the first PolySRV release of Telegram 7.3.2.
+// 7.3.3.1 for the first PolySRV release of Telegram 7.3.3.
 constexpr auto PolySrvBuild = 1;
 constexpr auto AppBetaVersion = false;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;

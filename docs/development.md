@@ -8,6 +8,33 @@ notes still apply; this file only covers what is different here.
 * `main` is never pushed to directly. All work lands on `dev`.
 * `dev` is the branch every pull request targets.
 
+## The upstream merge
+
+`main` mirrors the upstream `dev` branch of
+[telegramdesktop/tdesktop](https://github.com/telegramdesktop/tdesktop), and
+`dev` carries the PolySRV changes on top of it. The upstream remote is:
+
+```bash
+git remote add upstream https://github.com/telegramdesktop/tdesktop
+git fetch upstream
+```
+
+The merge is a plain merge of `upstream/dev` into `dev`. The only conflicts
+are the files the branding touches: `Telegram/build/version`,
+`Telegram/SourceFiles/core/version.h`, the Windows resources and the AppX
+manifest. The official version moves to the new upstream version and the
+fourth component of the Windows and AppX versions stays the PolySRV build
+number, so the release reads 7.3.3.1 for the first PolySRV release of
+Telegram 7.3.3.
+
+After the merge the branding is restored with one command:
+
+```bash
+python3 Telegram/build/apply_branding.py
+```
+
+The `Branding` CI job fails when a merge left the branding unapplied.
+
 ## CI discipline
 
 The GitHub Actions runners are a shared, metered resource, so the pipeline is

@@ -1066,7 +1066,6 @@ QByteArray Account::downloadsSerialized() const {
 
 void Account::writeServerSelection(const ServerSelection &selection) {
 	const auto size = sizeof(qint32)
-		+ sizeof(qint32)
 		+ Serialize::stringSize(selection.id)
 		+ Serialize::stringSize(selection.host);
 	EncryptedDescriptor data(size);
@@ -1078,7 +1077,7 @@ void Account::writeServerSelection(const ServerSelection &selection) {
 	file.writeEncrypted(data, _localKey);
 }
 
-std::optional<Account::ServerSelection> Account::readServerSelection() {
+std::optional<ServerSelection> Account::readServerSelection() {
 	FileReadDescriptor file;
 	if (!ReadEncryptedFile(
 			file,

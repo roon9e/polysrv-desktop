@@ -133,15 +133,20 @@ void Account::applyServer(
 		const QString &id,
 		const QString &host,
 		int port) {
-	auto selection = Storage::Account::ServerSelection();
-	selection.id = id;
-	selection.host = host;
-	selection.port = port;
-	if (selection.empty()) {
-		return;
+	auto selection = Storage::ServerSelection();
+	const auto server = PolySrv::FindServer(id);
+	if (!server || !server->isTelegram) {
+		selection.id = id;
+		selection.host = host;
+		selection.port = port;
+		if (selection.empty()) {
+			return;
+		}
 	}
+	// The official Telegram network is the default one, so it leaves the
+	// selection empty and the scope of the account empty with it.
 	local().writeServerSelection(selection);
-	_serverScope = host.toLower();
+	_serverScope = selection.host.toLower();
 	resetAuthorizationKeys();
 }
 

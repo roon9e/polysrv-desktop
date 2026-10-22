@@ -1328,7 +1328,8 @@ bool Application::openLocalUrl(const QString &url, QVariant context) {
 			if (!account.serverScope().isEmpty()) {
 				// A tg link belongs to the official Telegram network,
 				// so it cannot be routed on another server.
-				Ui::MakeInformBox(tr::lng_polysrv_tg_link_needs_telegram());
+				Ui::show(Ui::MakeInformBox(
+					tr::lng_polysrv_tg_link_needs_telegram()));
 				return true;
 			}
 		}
@@ -1358,7 +1359,7 @@ bool Application::openServerLink(
 		if (!server) {
 			return false;
 		}
-		for (const auto &account : _domain.orderedAccounts()) {
+		for (const auto &account : _domain->orderedAccounts()) {
 			if (account->sessionExists()) {
 				account->applyServer(
 					server->id,
@@ -1381,22 +1382,23 @@ bool Application::openServerLink(
 	}
 	case PolySrv::Link::Type::ServerHost: {
 		const auto host = link.serverHost.toLower();
-		for (const auto &account : _domain.orderedAccounts()) {
+		for (const auto &account : _domain->orderedAccounts()) {
 			if (account->serverScope() != host) {
 				continue;
 			}
 			if (account->sessionExists()
-			&& account.get() != &_domain.active()) {
+			&& account.get() != &_domain->active()) {
 				// Switching the account inside the click handler can use
 				// after free the window that started it, so the switch is
 				// deferred and the link is opened afterwards.
 				const auto rest = link.rest;
 				InvokeQueued(this, [=] {
-					_domain.maybeActivate(account);
+					_domain->maybeActivate(account);
 					openLocalUrl(u"tg://"_q + rest, context);
 				});
 				return true;
 			}
+		}
 		return openLocalUrl(u"tg://"_q + link.rest, context);
 	}
 	default:

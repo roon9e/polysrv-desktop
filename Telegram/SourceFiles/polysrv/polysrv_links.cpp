@@ -12,19 +12,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace PolySrv {
 
-namespace {
-
-constexpr auto kProtocol = "srv://"_cs;
-
-} // namespace
-
 Link ParseLink(const QString &url) {
 	auto result = Link();
 	const auto trimmed = url.trimmed();
-	if (!trimmed.startsWith(kProtocol, Qt::CaseInsensitive)) {
+	const auto protocol = u"srv://"_q;
+	if (!trimmed.startsWith(protocol, Qt::CaseInsensitive)) {
 		return result;
 	}
-	const auto body = trimmed.mid(kProtocol.size());
+	const auto body = trimmed.mid(protocol.size());
 
 	// The query of the link, if it has one.
 	const auto question = body.indexOf('?');

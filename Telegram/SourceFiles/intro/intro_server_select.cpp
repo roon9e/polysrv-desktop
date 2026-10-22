@@ -15,13 +15,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/qt_object_factory.h"
 #include "ui/widgets/buttons.h"
 
-#include <rpl/filter.h>
-#include <rpl/then.h>
+#include <rpl/producer.h>
 
-#include <QtWidgets/QBoxLayout>
 #include <QtWidgets/QWidget>
-
-#include <memory>
 
 namespace Intro {
 namespace details {
@@ -39,10 +35,9 @@ ServerSelectWidget::ServerSelectWidget(
 	not_null<Main::Account*> account,
 	not_null<Data*> data)
 : Step(parent, account, data, true) {
-	setTitleText(rpl::single(tr::lng_polysrv_server_title()));
+	setTitleText(tr::lng_polysrv_server_title());
 	setDescriptionText(tr::lng_polysrv_server_description());
 
-	_container = Ui::CreateChild<QWidget>(this);
 	fillRows();
 
 	// The list of the servers the remote domain publishes arrives over
@@ -55,15 +50,9 @@ ServerSelectWidget::ServerSelectWidget(
 
 void ServerSelectWidget::fillRows() {
 	_rows.clear();
-	if (_container) {
-		_container->deleteLater();
-	}
-	_container = Ui::CreateChild<QWidget>(this);
-	auto layout = std::make_unique<QVBoxLayout>(_container);
-	layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing((st::introNextButton.height > 0)
-		? (st::introNextButton.height / 2)
-		: 4);
+	_container.destroyDelayed();
+	_container = object_ptr<QWidget>::fromRaw(
+		Ui::CreateChild<QWidget>(this));
 
 	const auto servers = PolySrv::Servers();
 	_rows.reserve(servers.size());
@@ -71,14 +60,30 @@ void ServerSelectWidget::fillRows() {
 		auto button = Ui::CreateChild<Ui::LinkButton>(
 			_container,
 			ServerLabel(server));
-		layout->addWidget(button);
 		_rows.push_back(button);
 		const auto id = server.id;
-		button->clicked.connect([=] {
+		button->setClickedCallback([=] {
 			chooseServer(id);
 		});
 	}
-	layout->addStretch(1);
+	updateRowsGeometry();
+}
+
+void ServerSelectWidget::updateRowsGeometry() {
+	if (!_container) {
+		return;
+	}
+	const auto width = st::introNextButton.width;
+	auto y = 0;
+	for (const auto &button : _rows) {
+		button->resizeToWidth(width);
+		button->moveToLeft(0, y);
+		y += button->height() + st::introServerRowSpacing;
+	}
+	_container->resize(width, y);
+	_container->move(
+		contentLeft(),
+		contentTop() + st::introStepFieldTop);
 }
 
 void ServerSelectWidget::chooseServer(const QString &id) {
@@ -112,7 +117,7 @@ void ServerSelectWidget::submit() {
 }
 
 rpl::producer<QString> ServerSelectWidget::nextButtonText() const {
-	return rpl::single(tr::lng_polysrv_server_continue());
+	return tr::lng_polysrv_server_continue();
 }
 
 void ServerSelectWidget::activate() {
@@ -128,12 +133,7 @@ void ServerSelectWidget::setInnerFocus() {
 
 void ServerSelectWidget::resizeEvent(QResizeEvent *e) {
 	Step::resizeEvent(e);
-	const auto left = contentLeft();
-	const auto width = (this->width() > left * 2) ? (this->width() - left * 2) : 0;
-	if (width > 0) {
-		_container->resize(width, _container->sizeHint().height());
-		_container->move(left, contentTop());
-	}
+	updateRowsGeometry();
 }
 
 } // namespace details
