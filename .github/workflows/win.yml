@@ -188,7 +188,6 @@ jobs:
             'C:\hostedtoolcache\windows\Kotlin',
             'C:\hostedtoolcache\windows\Sbt',
             'C:\hostedtoolcache\windows\Stack',
-            'C:\ProgramData\chocolatey\lib',
             'C:\Windows\Temp'
           )
           foreach ($pattern in $patterns) {
