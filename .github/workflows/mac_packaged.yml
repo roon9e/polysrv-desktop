@@ -50,6 +50,7 @@ jobs:
     runs-on: ${{ (github.event_name != 'workflow_call' && (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly')) && 'depot-macos-latest' || (matrix.arch == 'arm64' && 'macos-15' || 'macos-15-intel') }}
 
     strategy:
+      fail-fast: false
       matrix:
         arch: [arm64, x64]
         defines:
