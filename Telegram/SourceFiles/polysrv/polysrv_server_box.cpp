@@ -270,28 +270,41 @@ int DescriptionSection::resizeGetHeight(int newWidth) {
 
 class HeaderRow final : public Ui::RpWidget {
 public:
-	HeaderRow(QWidget *parent, const Server &server);
+	HeaderRow(QWidget *parent, Server server);
+
+	void setText(const QString &text);
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;
 
 private:
+	Server _server;
 	object_ptr<Ui::RpWidget> _logo;
 	object_ptr<Ui::FlatLabel> _name;
 };
 
-HeaderRow::HeaderRow(QWidget *parent, const Server &server)
+HeaderRow::HeaderRow(QWidget *parent, Server server)
 : RpWidget(parent)
+, _server(std::move(server))
 , _logo(this)
-, _name(this, server.name, st::introServerCardName) {
+, _name(this, _server.name, st::introServerCardName) {
 	const auto logoSize = st::introServerCardLogo;
 	_logo->resize(logoSize, logoSize);
 	_logo->paintRequest(
-	) | rpl::on_next([=] {
+	) | rpl::on_next([this, logoSize] {
 		auto p = QPainter(_logo.data());
-		PaintServerLogo(p, logoSize, server);
+		PaintServerLogo(p, logoSize, _server);
 	}, _logo->lifetime());
 	resize(parent->width(), logoSize);
+}
+
+void HeaderRow::setText(const QString &text) {
+	if (_server.name == text) {
+		return;
+	}
+	_server.name = text;
+	_name->setText(text);
+	_logo->update();
 }
 
 void HeaderRow::resizeEvent(QResizeEvent *e) {
@@ -638,6 +651,10 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 			? tr::lng_polysrv_edit_server()
 			: tr::lng_polysrv_new_server());
 
+		const auto header = box->addRow(
+			object_ptr<HeaderRow>(box, initial),
+			st::boxRowPadding);
+
 		const auto name = AddField(
 			box,
 			tr::lng_polysrv_server_name(),
@@ -674,11 +691,34 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 		key->setInputMethodHints(
 			Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
 
-		const auto multiDc = box->addRow(object_ptr<Ui::Checkbox>(
-			box,
-			tr::lng_polysrv_server_multi_dc(tr::now),
-			initial.multiDc,
-			st::defaultBoxCheckbox));
+		const auto multiDc = box->addRow(
+			object_ptr<Ui::Checkbox>(
+				box,
+				tr::lng_polysrv_server_multi_dc(tr::now),
+				initial.multiDc,
+				st::defaultBoxCheckbox),
+			st::boxRowPadding + QMargins(0, st::introServerFieldSkip, 0, 0));
+
+		const auto previewText = [=] {
+			const auto typed = name->getLastText().trimmed();
+			if (!typed.isEmpty()) {
+				return typed;
+			}
+			const auto typedHost = host->getLastText().trimmed();
+			if (!typedHost.isEmpty()) {
+				return typedHost;
+			}
+			const auto label = ServerRowLabel(initial);
+			return label.isEmpty()
+				? tr::lng_polysrv_new_server(tr::now)
+				: label;
+		};
+		const auto updatePreview = [=] {
+			header->setText(previewText());
+		};
+		header->setText(previewText());
+		name->changes() | rpl::on_next(updatePreview, box->lifetime());
+		host->changes() | rpl::on_next(updatePreview, box->lifetime());
 
 		const auto save = [=] {
 			const auto serverName = name->getLastText().trimmed();
