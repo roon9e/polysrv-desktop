@@ -163,7 +163,11 @@ void Account::restoreServer(MTP::Config *config) {
 		// the configuration it sends can name the other data centers.
 		_serverScope.clear();
 		if (config) {
+			// WHY: the copied options keep the hosts of a server chosen
+			// before, so without a rebuild the handshake talks to that
+			// server with the built-in keys and never completes.
 			config->dcOptions().setOptionsLocked(false);
+			config->dcOptions().constructFromBuiltIn();
 			config->dcOptions().setBuiltInPublicKeys();
 		}
 		return;
