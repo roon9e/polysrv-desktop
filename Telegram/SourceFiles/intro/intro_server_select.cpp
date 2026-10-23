@@ -360,15 +360,15 @@ int ServerSelectWidget::listPanelHeight(int panelTop) const {
 	const auto reserved = !_status->isHidden()
 		? (_status->height() + st::introServerListTop)
 		: 0;
-	const auto nextTop = contentTop() + st::introNextTop;
-	const auto maxHeight = nextTop
+	// The whole step below the description is free, there is no next button.
+	const auto available = height()
 		- panelTop
 		- st::introServerListBottom
 		- reserved;
 	return std::clamp(
 		natural,
 		st::introServerListMinHeight,
-		std::max(maxHeight, st::introServerListMinHeight));
+		std::max(available, st::introServerListMinHeight));
 }
 
 void ServerSelectWidget::rebuildList() {
