@@ -54,6 +54,7 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || ((github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-windows-latest-16' || 'windows-latest') }}
 
     strategy:
+      fail-fast: false
       matrix:
         arch: [x64, arm64]
         qt: [""]
@@ -71,17 +72,21 @@ jobs:
     steps:
       - name: Prepare directories.
         run: |
-          mkdir D:\TBuild\Libraries
-          mklink /d %GITHUB_WORKSPACE%\TBuild D:\TBuild
+          set "ROOT=D:"
+          if not exist D:\ set "ROOT=C:"
+          mkdir "%ROOT%\TBuild\Libraries"
+          if not exist "%GITHUB_WORKSPACE%\TBuild" mklink /d "%GITHUB_WORKSPACE%\TBuild" "%ROOT%\TBuild"
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
           echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries${{ matrix.arch == 'x64' && '\win64' || '' }}>>%GITHUB_ENV%
 
       - name: Report disk space.
         shell: pwsh
         run: |
-          Get-PSDrive C, D | Select-Object Name,
-            @{n = 'FreeGB'; e = { [math]::Round($_.Free / 1GB, 2) } },
-            @{n = 'UsedGB'; e = { [math]::Round($_.Used / 1GB, 2) } }
+          Get-PSDrive -PSProvider FileSystem |
+            Where-Object { $null -ne $_.Used } |
+            Select-Object Name,
+              @{n = 'FreeGB'; e = { [math]::Round($_.Free / 1GB, 2) } },
+              @{n = 'UsedGB'; e = { [math]::Round($_.Used / 1GB, 2) } }
 
       - name: Get repository name.
         shell: bash
@@ -262,10 +267,10 @@ jobs:
       - name: Free up some disk space.
         shell: bash
         run: |
-          df -h /d
+          df -h
           # Qt's package files reference the object dirs of its build.
           find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
-          df -h /d
+          df -h
 
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
