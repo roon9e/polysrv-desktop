@@ -47,7 +47,7 @@ jobs:
 
   macos:
     name: MacOS ${{ matrix.arch }}
-    runs-on: ${{ (github.event_name != 'workflow_call' && (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly')) && 'depot-macos-latest' || (matrix.arch == 'arm64' && 'macos-15' || 'macos-15-intel') }}
+    runs-on: macos-15
 
     strategy:
       fail-fast: false
@@ -59,7 +59,7 @@ jobs:
     env:
       GIT: "https://github.com"
       CMAKE_GENERATOR: "Ninja"
-      CMAKE_BUILD_TYPE: "Release"
+      CMAKE_BUILD_TYPE: "Debug"
       CMAKE_BUILD_PARALLEL_LEVEL: ""
       HOMEBREW_PREFIX: ${{ matrix.arch == 'arm64' && '/opt/homebrew' || '/usr/local' }}
       CMAKE_PREFIX_PATH: ${{ matrix.arch == 'arm64' && '/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft' || '/usr/local/opt/ffmpeg@6:/usr/local/opt/openal-soft' }}
@@ -243,10 +243,16 @@ jobs:
             echo "ARTIFACT_NAME=PolySRV macos ${{ matrix.arch }}" >> $GITHUB_ENV
           fi
 
-          cmake -Bbuild . -DCMAKE_BUILD_TYPE=Release -DTDESKTOP_API_TEST=ON $DEFINE
+          cmake -Bbuild . -DCMAKE_BUILD_TYPE=Debug -DTDESKTOP_API_TEST=ON $DEFINE
           cmake --build build
           macdeployqt build/PolySRV.app
-          codesign --force --deep --sign - build/PolySRV.app
+          for nested in build/PolySRV.app/Contents/Frameworks/*.framework \
+                        build/PolySRV.app/Contents/PlugIns/*.dylib; do
+            [ -e "$nested" ] || continue
+            codesign --force --sign - "$nested"
+          done
+          codesign --force --sign - build/PolySRV.app
+          codesign --verify --deep --strict --verbose=2 build/PolySRV.app
 
       - name: Create disk image.
         run: |

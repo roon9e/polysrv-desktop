@@ -46,7 +46,7 @@ jobs:
 
   macos:
     name: MacOS ${{ matrix.arch }}
-    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || 'macos-15' }}
+    runs-on: macos-15
 
     strategy:
       fail-fast: false
@@ -138,13 +138,17 @@ jobs:
 
           cmake --build ../out --config Debug --parallel
 
+          codesign --force --deep --sign - ../out/Debug/PolySRV.app
+          codesign --force --sign - ../out/Debug/Updater
+          codesign --verify --deep --strict --verbose=2 ../out/Debug/PolySRV.app
+
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd $REPO_NAME/out/Debug
           mkdir artifact
-          mv PolySRV.app artifact/
-          mv Updater artifact/
+          ditto -c -k --sequesterRsrc --keepParent PolySRV.app artifact/PolySRV-macos-${{ matrix.arch }}.zip
+          cp Updater artifact/
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
