@@ -34,6 +34,7 @@ public:
 	void finishInit() override;
 	void activate() override;
 	void submit() override;
+	[[nodiscard]] bool hasBack() const override;
 	[[nodiscard]] rpl::producer<QString> nextButtonText() const override;
 
 	void resizeEvent(QResizeEvent *e) override;

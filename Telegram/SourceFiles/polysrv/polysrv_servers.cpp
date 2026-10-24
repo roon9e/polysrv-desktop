@@ -48,6 +48,7 @@ constexpr auto kCheckTimeout = 5000;
 		.host = u"149.154.167.51"_q,
 		.port = 443,
 		.description = u"Official Telegram cloud."_q,
+		.logoPath = u":/gui/art/logo_256.png"_q,
 		.isTelegram = true,
 		.multiDc = true,
 		.mainDcId = 2,
@@ -475,6 +476,29 @@ std::optional<Server> FindServer(const QString &id) {
 		return std::nullopt;
 	}
 	return *found;
+}
+
+Server ServerForScope(const QString &scope) {
+	if (scope.isEmpty()) {
+		return TelegramServer();
+	}
+	const auto servers = Servers();
+	const auto found = std::find_if(servers.begin(), servers.end(),
+	[&](const Server &server) {
+		return !server.isTelegram
+			&& (server.primaryHost().compare(scope, Qt::CaseInsensitive) == 0);
+	});
+	if (found != servers.end()) {
+		return *found;
+	}
+	// The server was removed after the account joined it, so the host is
+	// all that names it now.
+	auto result = Server();
+	result.id = scope;
+	result.name = scope;
+	result.host = scope;
+	result.port = 443;
+	return result;
 }
 
 std::optional<Server> AddCustomServer(

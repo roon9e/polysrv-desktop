@@ -87,6 +87,11 @@ void ApplyServerToDcOptions(MTP::DcOptions &options, const Server &server);
 [[nodiscard]] std::vector<Server> Servers();
 [[nodiscard]] std::optional<Server> FindServer(const QString &id);
 
+// The server an account with this scope joined: the official network when
+// the scope is empty, the matching known server, or a placeholder named by
+// the host alone when that server has since been removed.
+[[nodiscard]] Server ServerForScope(const QString &scope);
+
 // The user added servers, stored in the working directory.
 [[nodiscard]] std::optional<Server> AddCustomServer(
 	const QString &name,

@@ -336,6 +336,10 @@ void ServerSelectWidget::activate() {
 void ServerSelectWidget::submit() {
 }
 
+bool ServerSelectWidget::hasBack() const {
+	return true;
+}
+
 rpl::producer<QString> ServerSelectWidget::nextButtonText() const {
 	return rpl::single(QString());
 }

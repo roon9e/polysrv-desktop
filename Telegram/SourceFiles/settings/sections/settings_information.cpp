@@ -12,7 +12,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_common_session.h"
 #include "settings/business/settings_chatbots.h"
 #include "ui/wrap/vertical_layout.h"
-#include "ui/wrap/vertical_layout_reorder.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/labels.h"
@@ -55,6 +54,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_domain.h"
 #include "mtproto/mtproto_dc_options.h"
+#include "polysrv/polysrv_servers.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "window/window_peer_menu.h"
@@ -63,6 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_user_names.h"
 #include "api/api_user_privacy.h"
 #include "base/call_delayed.h"
+#include "base/flat_set.h"
 #include "base/options.h"
 #include "base/unixtime.h"
 #include "base/random.h"
@@ -221,6 +222,8 @@ private:
 	void setup();
 
 	[[nodiscard]] not_null<Ui::SlideWrap<Ui::SettingsButton>*> setupAdd();
+	[[nodiscard]] Fn<void(Qt::KeyboardModifiers)> switchCallback(
+		not_null<::Main::Account*> account);
 	void rebuild();
 
 	const not_null<Window::SessionController*> _controller;
@@ -228,13 +231,10 @@ private:
 	int _outerIndex = 0;
 
 	Ui::SlideWrap<Ui::SettingsButton> *_addAccount = nullptr;
-	base::flat_map<
-		not_null<::Main::Account*>,
-		base::unique_qptr<Ui::SettingsButton>> _watched;
+	Ui::VerticalLayout *_inner = nullptr;
+	base::flat_set<not_null<::Main::Account*>> _watched;
 
 	base::unique_qptr<Ui::PopupMenu> _contextMenu;
-	std::unique_ptr<Ui::VerticalLayoutReorder> _reorder;
-	int _reordering = 0;
 
 	rpl::event_stream<> _closeRequests;
 
@@ -981,7 +981,7 @@ void AccountsList::setup() {
 			return false;
 		};
 		for (auto i = _watched.begin(); i != _watched.end();) {
-			if (!exists(i->first)) {
+			if (!exists(*i)) {
 				i = _watched.erase(i);
 			} else {
 				++i;
@@ -1000,9 +1000,6 @@ void AccountsList::setup() {
 
 	Core::App().domain().maxAccountsChanges(
 	) | rpl::on_next([=] {
-		for (auto i = _watched.begin(); i != _watched.end(); i++) {
-			i->second = nullptr;
-		}
 		rebuild();
 	}, _outer->lifetime());
 }
@@ -1080,99 +1077,107 @@ not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
 	return result;
 }
 
-void AccountsList::rebuild() {
-	const auto inner = _outer->insert(
-		_outerIndex,
-		object_ptr<Ui::VerticalLayout>(_outer.get()));
-
-	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(inner);
-	_reorder->updates(
-	) | rpl::on_next([=](Ui::VerticalLayoutReorder::Single data) {
-		using State = Ui::VerticalLayoutReorder::State;
-		if (data.state == State::Started) {
-			++_reordering;
-		} else {
-			Ui::PostponeCall(inner, [=] {
-				--_reordering;
-			});
-			if (data.state == State::Applied) {
-				std::vector<uint64> order;
-				order.reserve(inner->count());
-				for (auto i = 0; i < inner->count(); i++) {
-					for (const auto &[account, button] : _watched) {
-						if (button.get() == inner->widgetAt(i)) {
-							order.push_back(account->session().uniqueId());
-						}
-					}
-				}
-				Core::App().settings().setAccountsOrder(order);
-				Core::App().saveSettings();
-			}
+Fn<void(Qt::KeyboardModifiers)> AccountsList::switchCallback(
+		not_null<::Main::Account*> account) {
+	return [=](Qt::KeyboardModifiers modifiers) {
+		if (account == &_controller->session().account()) {
+			_closeRequests.fire({});
+			return;
 		}
-	}, inner->lifetime());
+		const auto newWindow = (modifiers & Qt::ControlModifier);
+		auto activate = [=, guard = _accountSwitchGuard.make_guard()]{
+			if (guard) {
+				if (newWindow) {
+					_closeRequests.fire({});
+					Core::App().ensureSeparateWindowFor(account);
+				}
+				Core::App().domain().maybeActivate(account);
+			}
+		};
+		if (const auto window = Core::App().separateWindowFor(account)) {
+			_closeRequests.fire({});
+			window->activate();
+		} else {
+			base::call_delayed(
+				st::defaultRippleAnimation.hideDuration,
+				account,
+				std::move(activate));
+		}
+	};
+}
 
+void AccountsList::rebuild() {
+	// WHY: a list inserted on every rebuild left the rows of the previous
+	// one above it, and the server headers would have doubled on top.
+	if (!_inner) {
+		_inner = _outer->insert(
+			_outerIndex,
+			object_ptr<Ui::VerticalLayout>(_outer.get()));
+	} else {
+		_inner->clear();
+	}
+	const auto inner = _inner.data();
 	const auto premiumLimit = _controller->session().domain().maxAccounts();
 	const auto list = _controller->session().domain().orderedAccounts();
-	for (const auto &account : list) {
-		auto i = _watched.find(account);
-		Assert(i != _watched.end());
 
-		auto &button = i->second;
-		if (!account->sessionExists() || list.size() == 1) {
-			button = nullptr;
-		} else if (!button) {
-			const auto nextIsLocked = (inner->count() >= premiumLimit);
-			auto callback = [=](Qt::KeyboardModifiers modifiers) {
-				if (_reordering) {
-					return;
+	auto buttons = 0;
+	const auto addButton = [&](not_null<::Main::Account*> account) {
+		const auto nextIsLocked = (buttons >= premiumLimit);
+		++buttons;
+		inner->add(MakeAccountButton(
+			inner,
+			_controller,
+			account,
+			switchCallback(account),
+			nextIsLocked));
+	};
+
+	if (list.size() > 1) {
+		auto accounts = std::vector<not_null<::Main::Account*>>();
+		accounts.reserve(list.size());
+		for (const auto &account : list) {
+			if (account->sessionExists()) {
+				accounts.push_back(account);
+			}
+		}
+		if (accounts.size() > 1) {
+			auto grouped = std::vector<std::pair<
+				PolySrv::Server,
+				not_null<::Main::Account*>>>();
+			grouped.reserve(accounts.size());
+			for (const auto account : accounts) {
+				grouped.emplace_back(
+					PolySrv::ServerForScope(account->serverScope()),
+					account);
+			}
+			std::stable_sort(grouped.begin(), grouped.end(),
+			[](const auto &a, const auto &b) {
+				if (a.first.isTelegram != b.first.isTelegram) {
+					return a.first.isTelegram;
 				}
-				if (account == &_controller->session().account()) {
-					_closeRequests.fire({});
-					return;
+				return a.first.name < b.first.name;
+			});
+			auto lastId = QString();
+			for (const auto &[server, account] : grouped) {
+				if (server.id != lastId) {
+					lastId = server.id;
+					Ui::AddSubsectionTitle(inner, rpl::single(server.name));
 				}
-				const auto newWindow = (modifiers & Qt::ControlModifier);
-				auto activate = [=, guard = _accountSwitchGuard.make_guard()]{
-					if (guard) {
-						_reorder->finishReordering();
-						if (newWindow) {
-							_closeRequests.fire({});
-							Core::App().ensureSeparateWindowFor(account);
-						}
-						Core::App().domain().maybeActivate(account);
-					}
-				};
-				if (const auto window = Core::App().separateWindowFor(
-						account)) {
-					_closeRequests.fire({});
-					window->activate();
-				} else {
-					base::call_delayed(
-						st::defaultRippleAnimation.hideDuration,
-						account,
-						std::move(activate));
-				}
-			};
-			button.reset(inner->add(MakeAccountButton(
-				inner,
-				_controller,
-				account,
-				std::move(callback),
-				nextIsLocked)));
+				addButton(account);
+			}
+		} else {
+			for (const auto account : accounts) {
+				addButton(account);
+			}
 		}
 	}
 	inner->resizeToWidth(_outer->width());
 
 	const auto count = int(list.size());
 
-	_reorder->addPinnedInterval(
-		premiumLimit,
-		std::max(1, count - premiumLimit));
-
 	_addAccount->toggle(
 		(count < ::Main::Domain::kPremiumMaxAccounts),
 		anim::type::instant);
-
-	_reorder->start();
 }
 
 void BuildInformationSection(SectionBuilder &builder) {
