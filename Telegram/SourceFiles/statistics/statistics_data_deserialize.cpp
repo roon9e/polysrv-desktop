@@ -17,6 +17,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
 
+#include <vector>
+
 namespace Statistic {
 
 Data::StatisticalChart StatisticalChartFromJSON(const QByteArray &json) {
@@ -34,11 +36,11 @@ Data::StatisticalChart StatisticalChartFromJSON(const QByteArray &json) {
 	}
 
 	const auto hiddenLinesRaw = root.value(u"hidden"_q).toArray();
-	const auto hiddenLines = ranges::views::all(
-		hiddenLinesRaw
-	) | ranges::views::transform([](const auto &q) {
-		return q.toString();
-	}) | ranges::to_vector;
+	auto hiddenLines = std::vector<QString>();
+	hiddenLines.reserve(hiddenLinesRaw.size());
+	for (const auto &value : hiddenLinesRaw) {
+		hiddenLines.push_back(value.toString());
+	}
 
 	auto result = Data::StatisticalChart();
 
