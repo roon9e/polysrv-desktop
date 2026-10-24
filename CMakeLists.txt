@@ -42,6 +42,9 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
     add_compile_options(-Wno-range-loop-construct)
+    # Its dangling-pointer and loop-optimization reports are inlining noise.
+    add_compile_options(-Wno-dangling-pointer)
+    add_compile_options(-Wno-aggressive-loop-optimizations)
 endif()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Telegram)
