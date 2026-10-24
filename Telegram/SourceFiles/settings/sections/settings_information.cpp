@@ -1116,7 +1116,7 @@ void AccountsList::rebuild() {
 	} else {
 		_inner->clear();
 	}
-	const auto inner = _inner.data();
+	const auto inner = not_null{ _inner };
 	const auto premiumLimit = _controller->session().domain().maxAccounts();
 	const auto list = _controller->session().domain().orderedAccounts();
 
