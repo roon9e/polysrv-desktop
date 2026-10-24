@@ -3,11 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PolySRV</title>
+<title>PolySrv — servers</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 32px 20px 60px; background: #17212b; color: #e6edf3;
+         font: 16px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { color: #8fa3b5; margin-bottom: 26px; font-size: 14px; }
+  .card { background: #0f1620; border: 1px solid #22303c; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .ttl { font-weight: 600; margin-bottom: 12px; }
+  .row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #3aa675; flex: 0 0 auto;
+         box-shadow: 0 0 6px rgba(58,166,117,.55); }
+  .dot.bad { background: #d05a5a; box-shadow: 0 0 6px rgba(208,90,90,.5); }
+  .dot.idle { background: #6b7f92; box-shadow: none; }
+  .name { font-weight: 600; }
+  .addr { color: #7f95a8; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          min-width: 0; overflow-wrap: anywhere; }
+  .badge { margin-left: auto; font-size: 12px; padding: 3px 9px; border-radius: 999px;
+           background: #1d2b38; color: #8fa3b5; white-space: nowrap; }
+  .badge.tg { background: #2b5278; color: #cfe4ff; }
+  a { color: #6ab3f3; }
+  code { background: #0b1118; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  .files { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .files a { text-decoration: none; border: 1px solid #22303c; border-radius: 8px; padding: 7px 12px; font-size: 14px; }
+  .files a:hover { background: #16212c; }
+  .upd { margin-top: 6px; font-size: 14px; color: #b8c6d4; }
+  .foot { margin-top: 28px; color: #64798c; font-size: 13px; }
+  .meta { color: #64798c; font-size: 13px; margin-top: 10px; }
+  code.k { color: #7ee0b8; }
+</style>
 </head>
 <body>
-<h1>PolySRV</h1>
-<p>Server list: <a href="servers.json">servers.json</a></p>
-<p>Update manifest: <a href="update.json">update.json</a></p>
+<div class="wrap">
+  <h1>PolySrv</h1>
+  <div class="sub">Servers and ping. The app reads the same server list on startup.</div>
+
+  <div class="card">
+    <div class="ttl">Servers</div>
+    <div id="servers"><div class="addr">loading…</div></div>
+    <div class="meta" id="checked"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">Release</div>
+    <div id="release" class="upd">Desktop builds are published as GitHub releases.<br>
+      <a href="https://github.com/roon9e/polysrv-desktop/releases">Latest release</a></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">Files</div>
+    <div class="files">
+      <a href="servers.json">servers.json</a>
+      <a href="update.json">update.json</a>
+    </div>
+  </div>
+
+  <div class="foot">Updated automatically when the <code class="k">gh-pages</code> branch changes.</div>
+</div>
+
+<script>
+function endpointOf(s) {
+  if (s.host) {
+    return {addr: s.host + ':' + (s.port || 443), dc: (s.dc || []).length};
+  }
+  const dcs = s.dc || [];
+  if (!dcs.length) return {addr: '—', dc: 0};
+  const main = s.mainDcId || 0;
+  const d = dcs.find(x => main && x.id === main) || dcs[0];
+  return {addr: d.host + ':' + (d.port || 443), dc: dcs.length};
+}
+
+async function loadServers() {
+  const box = document.getElementById('servers');
+  try {
+    const r = await fetch('servers.json?t=' + Date.now(), {cache: 'no-store'});
+    const d = await r.json();
+    box.innerHTML = '';
+    (d.servers || []).forEach(s => {
+      const ep = endpointOf(s);
+      const el = document.createElement('div');
+      el.className = 'row';
+      const dot = document.createElement('span');
+      dot.className = 'dot' + (s.online === false ? ' bad' : (s.online === true ? '' : ' idle'));
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = s.name || s.id;
+      const addr = document.createElement('span');
+      addr.className = 'addr';
+      addr.textContent = ep.addr + (ep.dc > 1 ? '  ·  ' + ep.dc + ' DC' : (s.mainDcId ? '  ·  DC' + s.mainDcId : ''));
+      const badge = document.createElement('span');
+      badge.className = 'badge' + (s.isTelegram ? ' tg' : '');
+      badge.textContent = s.isTelegram ? 'Telegram · multi-DC' : 'single-DC';
+      el.appendChild(dot);
+      el.appendChild(name);
+      el.appendChild(addr);
+      el.appendChild(badge);
+      box.appendChild(el);
+    });
+    if (!box.children.length) box.innerHTML = '<div class="addr">no servers</div>';
+
+    const parts = [];
+    if (d.checkedAt) parts.push('ping checked: ' + d.checkedAt);
+    const pings = (d.servers || [])
+      .filter(s => typeof s.pingMs === 'number' && s.pingMs >= 0)
+      .map(s => (s.name || s.id) + ' ' + s.pingMs + ' ms');
+    if (pings.length) parts.push('ping: ' + pings.join(', '));
+    document.getElementById('checked').innerHTML = parts.length ? parts.join(' &nbsp;·&nbsp; ') : '';
+  } catch (e) {
+    box.innerHTML = '<div class="addr">failed to load servers.json</div>';
+  }
+}
+
+loadServers();
+setInterval(loadServers, 60000);
+</script>
 </body>
 </html>
