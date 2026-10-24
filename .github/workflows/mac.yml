@@ -46,7 +46,7 @@ jobs:
 
   macos:
     name: MacOS ${{ matrix.arch }}
-    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || (matrix.arch == 'arm64' && 'macos-15' || 'macos-15-intel') }}
+    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || 'macos-15' }}
 
     strategy:
       fail-fast: false
@@ -58,6 +58,7 @@ jobs:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      MACOSX_ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x86_64' }}
 
     steps:
       - name: Get repository name.
@@ -90,8 +91,8 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
+          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          restore-keys: ${{ runner.OS }}-libs-
 
       - name: Libraries.
         id: libraries
@@ -100,12 +101,13 @@ jobs:
 
       - name: Save Libraries cache.
         if: steps.cache-libs.outputs.cache-hit != 'true'
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
 
       - name: Free up some disk space.
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -name 'macos_toolchain.json' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' -o -perm +111 ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
@@ -126,6 +128,7 @@ jobs:
 
           ./configure.sh \
           -D CMAKE_CONFIGURATION_TYPES=Debug \
+          -D CMAKE_OSX_ARCHITECTURES=$MACOSX_ARCH \
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
           -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
           -D TDESKTOP_API_TEST=ON \
