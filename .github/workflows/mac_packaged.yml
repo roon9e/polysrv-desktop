@@ -52,14 +52,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x64]
+        arch: [arm64]
         defines:
           - ""
 
     env:
       GIT: "https://github.com"
       CMAKE_GENERATOR: "Ninja"
-      CMAKE_BUILD_TYPE: "Debug"
+      CMAKE_BUILD_TYPE: "Release"
       CMAKE_BUILD_PARALLEL_LEVEL: ""
       HOMEBREW_PREFIX: ${{ matrix.arch == 'arm64' && '/opt/homebrew' || '/usr/local' }}
       CMAKE_PREFIX_PATH: ${{ matrix.arch == 'arm64' && '/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft' || '/usr/local/opt/ffmpeg@6:/usr/local/opt/openal-soft' }}
@@ -87,10 +87,9 @@ jobs:
         run: |
           libs="ada-url ffmpeg@6 jpeg-xl libavif libheif minizip openal-soft openh264 openssl opus qtbase qtimageformats qtshadertools qtsvg xz"
           brew update
-          brew upgrade || true
           brew install autoconf automake boost cmake libtool ninja pkg-config python $libs
+          sudo mdutil -a -i off
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' $HOMEBREW_PREFIX/share/cmake/Modules/Compiler/GNU.cmake
 
           xcodebuild -version > CACHE_KEY.txt
           brew list --versions $libs >> CACHE_KEY.txt
@@ -244,7 +243,7 @@ jobs:
             echo "ARTIFACT_NAME=PolySRV macos ${{ matrix.arch }}" >> $GITHUB_ENV
           fi
 
-          cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE
+          cmake -Bbuild . -DCMAKE_BUILD_TYPE=Release -DTDESKTOP_API_TEST=ON $DEFINE
           cmake --build build
           macdeployqt build/PolySRV.app
           codesign --force --deep --sign - build/PolySRV.app
@@ -252,7 +251,16 @@ jobs:
       - name: Create disk image.
         run: |
           cd $REPO_NAME/build
-          hdiutil create -volname "PolySRV" -srcfolder PolySRV.app -ov -format UDZO PolySRV-macos-${{ matrix.arch }}.dmg
+          rm -rf dmg
+          mkdir dmg
+          ditto PolySRV.app dmg/PolySRV.app
+          for attempt in 1 2 3; do
+            if hdiutil create -volname "PolySRV" -srcfolder dmg -ov -format UDZO PolySRV-macos-${{ matrix.arch }}.dmg; then
+              break
+            fi
+            sleep 20
+          done
+          test -f PolySRV-macos-${{ matrix.arch }}.dmg
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'

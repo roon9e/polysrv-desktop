@@ -74,7 +74,6 @@ jobs:
           sudo chown -R `whoami`:admin /usr/local/share
 
           brew update
-          brew upgrade || true
           brew install automake libtool meson nasm ninja pkg-config
 
           # Disable spotlight.

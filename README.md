@@ -43,6 +43,11 @@ client checks lives at
 `https://roon9e.github.io/polysrv-desktop/update.json`. The server list is at
 `https://roon9e.github.io/polysrv-desktop/servers.json`.
 
+The download page is `https://roon9e.github.io/polysrv-desktop/`, and it links
+to the latest release. The builds are unsigned, so Chrome and Windows
+SmartScreen may call a download suspicious; every release also publishes
+`SHA256SUMS`, and a download is only worth keeping when its checksum matches.
+
 ## License
 
 The source code is published under GPLv3 with the OpenSSL exception, the same
