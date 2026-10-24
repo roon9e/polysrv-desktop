@@ -158,7 +158,9 @@ jobs:
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-
+          restore-keys: |
+            ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-
+            ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-
 
       - name: Restore the Qt cache.
         id: cache-qt
@@ -168,7 +170,9 @@ jobs:
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-
+          restore-keys: |
+            ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-
+            ${{ runner.OS }}-${{ matrix.arch }}-qt-
 
       - name: Free up the runner.
         shell: pwsh
