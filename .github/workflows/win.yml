@@ -180,6 +180,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'SilentlyContinue'
+          Set-MpPreference -DisableRealtimeMonitoring $true
           $patterns = @(
             'C:\ProgramData\Package Cache',
             'C:\Program Files\dotnet',
@@ -322,10 +323,12 @@ jobs:
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_CONFIGURATION_TYPES=Release ^
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
-          -D DESKTOP_APP_MSVC_PARALLEL=2 ^
+          -D DESKTOP_APP_MSVC_PARALLEL=1 ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
           %TDESKTOP_BUILD_DEFINE%
+
+          findstr ProcessorNumber ..\out\Telegram\Telegram.vcxproj
 
           cmake --build ..\out --config Release --parallel 1
 
