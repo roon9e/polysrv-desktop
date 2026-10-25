@@ -58,7 +58,7 @@ jobs:
       matrix:
         arch: [x64, arm64]
         qt: [""]
-        generator: [""]
+        generator: ["Ninja"]
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -256,7 +256,6 @@ jobs:
           if [ -n "${{ matrix.generator }}" ]; then
             GENERATOR="-G \"${{ matrix.generator }}\""
             echo "Generator from matrix: $GENERATOR"
-            ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.generator }}"
           fi
           echo "TDESKTOP_BUILD_GENERATOR=$GENERATOR" >> $GITHUB_ENV
 
@@ -287,6 +286,22 @@ jobs:
           # Qt's package files reference the object dirs of its build.
           find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
           df -h
+
+      - name: Report memory.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          $os = Get-CimInstance Win32_OperatingSystem
+          if ($os) {
+            "RAM total MB: {0}  free MB: {1}" -f [int]($os.TotalVisibleMemorySize / 1KB), [int]($os.FreePhysicalMemory / 1KB)
+          }
+          Get-CimInstance Win32_PageFileUsage | ForEach-Object {
+            "PageFile {0}  allocated MB: {1}  peak MB: {2}" -f $_.Name, $_.AllocatedBaseSize, $_.PeakUsage
+          }
+          try {
+            $c = Get-Counter '\Memory\Commit Limit'
+            "Commit limit MB: {0}" -f [int]($c.CounterSamples[0].CookedValue / 1MB)
+          } catch {}
 
       - name: Save the Libraries cache.
         if: steps.libraries.outcome == 'success' && !startsWith(github.ref, 'refs/tags/')
@@ -322,6 +337,7 @@ jobs:
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D CMAKE_BUILD_TYPE=Release ^
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
           -D DESKTOP_APP_MSVC_PARALLEL=1 ^
           -D CMAKE_CXX_FLAGS_RELEASE="/O1 /Ob1 /DNDEBUG /Zm2000" ^
@@ -338,6 +354,7 @@ jobs:
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\Release
+          if not exist %OUT%\PolySRV.exe set OUT=%TBUILD%\%REPO_NAME%\out
           mkdir artifact
           move %OUT%\PolySRV.exe artifact/
           move %OUT%\Updater.exe artifact/
