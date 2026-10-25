@@ -168,7 +168,7 @@ jobs:
 
   prune:
     needs: [macos]
-    if: github.ref == 'refs/heads/dev'
+    if: always() && github.ref == 'refs/heads/dev'
     permissions:
       actions: write
     uses: ./.github/workflows/prune-caches.yml
