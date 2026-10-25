@@ -70,9 +70,13 @@ include(cmake/target_prepare_qrc.cmake)
 
 include(cmake/options.cmake)
 
-# WHY: the Windows CI runner runs out of memory with all cores compiling.
-if (MSVC AND DESKTOP_APP_MSVC_PARALLEL)
-    add_compile_options(/MP${DESKTOP_APP_MSVC_PARALLEL})
+# WHY: MSBuild hands a whole file list to one compiler when /MP is on, and
+# that compiler then runs out of memory on the biggest Windows translation
+# units; without /MP every file gets its own process.
+if (MSVC)
+    get_property(_common_options TARGET common_options PROPERTY INTERFACE_COMPILE_OPTIONS)
+    list(REMOVE_ITEM _common_options /MP)
+    set_property(TARGET common_options PROPERTY INTERFACE_COMPILE_OPTIONS "${_common_options}")
 endif()
 
 include(cmake/external/qt/package.cmake)

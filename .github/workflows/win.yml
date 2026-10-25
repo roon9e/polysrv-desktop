@@ -58,7 +58,7 @@ jobs:
       matrix:
         arch: [x64, arm64]
         qt: [""]
-        generator: ["Ninja"]
+        generator: [""]
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -337,9 +337,7 @@ jobs:
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_CONFIGURATION_TYPES=Release ^
-          -D CMAKE_BUILD_TYPE=Release ^
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
-          -D DESKTOP_APP_MSVC_PARALLEL=1 ^
           -D CMAKE_CXX_FLAGS_RELEASE="/O1 /Ob1 /DNDEBUG /Zm2000" ^
           -D CMAKE_C_FLAGS_RELEASE="/O1 /Ob1 /DNDEBUG" ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
