@@ -220,7 +220,7 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: out/Release/artifact/
-          retention-days: 1
+          retention-days: 7
 
       - name: Save Libraries cache on failure.
         if: >

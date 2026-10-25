@@ -70,6 +70,11 @@ include(cmake/target_prepare_qrc.cmake)
 
 include(cmake/options.cmake)
 
+# WHY: the Windows CI runner runs out of memory with all cores compiling.
+if (MSVC AND DESKTOP_APP_MSVC_PARALLEL)
+    add_compile_options(/MP${DESKTOP_APP_MSVC_PARALLEL})
+endif()
+
 include(cmake/external/qt/package.cmake)
 
 set(desktop_app_skip_libs
