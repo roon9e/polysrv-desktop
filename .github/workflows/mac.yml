@@ -112,7 +112,7 @@ jobs:
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -name 'macos_toolchain.json' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' -o -perm +111 ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
 
       - name: Save the Libraries cache.
-        if: steps.libraries.outcome == 'success'
+        if: steps.libraries.outcome == 'success' && !startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
         uses: actions/cache/save@v6
         with:
@@ -165,4 +165,14 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/out/Debug/artifact/
           retention-days: 1
+
+  prune:
+    needs: [macos]
+    if: github.ref == 'refs/heads/dev'
+    permissions:
+      actions: write
+    uses: ./.github/workflows/prune-caches.yml
+    with:
+      prefixes: |
+        macOS-libs-
 

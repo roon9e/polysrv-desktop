@@ -139,9 +139,9 @@ jobs:
           nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
           nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
 
-      - name: ThirdParty cache.
+      - name: Restore the ThirdParty cache.
         id: cache-third-party
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.TBUILD }}\ThirdParty
           key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
@@ -157,8 +157,9 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v4-${{ env.CACHE_KEY }}
           restore-keys: |
+            ${{ runner.OS }}-${{ matrix.arch }}-libs-v4-
             ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-
             ${{ runner.OS }}-${{ matrix.arch }}-libs-v2-
 
@@ -169,8 +170,9 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v3-${{ env.CACHE_KEY }}
           restore-keys: |
+            ${{ runner.OS }}-${{ matrix.arch }}-qt-v3-
             ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-
             ${{ runner.OS }}-${{ matrix.arch }}-qt-
 
@@ -229,29 +231,6 @@ jobs:
           echo "LIBS_KEYS_HASH=$(keys_hash ! -iname 'qt_*')" >> "$GITHUB_ENV"
           echo "QT_KEYS_HASH=$(keys_hash -iname 'qt_*')" >> "$GITHUB_ENV"
 
-      - name: Save the Libraries cache.
-        if: steps.libraries.outcome == 'success'
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\*
-            !${{ env.LibrariesPath }}\cache_keys
-            !${{ env.LibrariesPath }}\[qQ]t[_-]*
-            ${{ env.LibrariesPath }}\cache_keys\*
-            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v3-${{ env.CACHE_KEY }}-${{ env.LIBS_KEYS_HASH }}
-
-      - name: Save the Qt cache.
-        if: steps.libraries.outcome == 'success'
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\[qQ]t[_-]*
-            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v2-${{ env.CACHE_KEY }}-${{ env.QT_KEYS_HASH }}
-
       - name: Read configuration matrix.
         shell: bash
         run: |
@@ -308,6 +287,29 @@ jobs:
           find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' -o -path '*/src/wallet_engine/*' -o '(' '(' -path '*/tlottie/*' -o -path '*/wallet-engine/*' ')' ! -path '*/target/*' ')' ')' -type f ')' -o '(' -empty ! -path '*/tlottie/*' ! -path '*/wallet-engine/*' ')' ')' -delete
           df -h
 
+      - name: Save the Libraries cache.
+        if: steps.libraries.outcome == 'success' && !startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-v4-${{ env.CACHE_KEY }}-${{ env.LIBS_KEYS_HASH }}
+
+      - name: Save the Qt cache.
+        if: steps.libraries.outcome == 'success' && !startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v3-${{ env.CACHE_KEY }}-${{ env.QT_KEYS_HASH }}
+
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
@@ -342,12 +344,28 @@ jobs:
           path: artifact\
           retention-days: 1
 
-      - name: Save ThirdParty cache on failure.
+      - name: Save the ThirdParty cache.
         if: >
-          failure()
+          always()
             && steps.cache-third-party.outputs.cache-hit != 'true'
             && steps.libraries.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.TBUILD }}\ThirdParty
           key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+
+  prune:
+    needs: [windows]
+    if: github.ref == 'refs/heads/dev'
+    permissions:
+      actions: write
+    uses: ./.github/workflows/prune-caches.yml
+    with:
+      prefixes: |
+        Windows-X64-third-party-
+        Windows-ARM64-third-party-
+        Windows-x64-libs-
+        Windows-arm64-libs-
+        Windows-x64-qt-
+        Windows-arm64-qt-

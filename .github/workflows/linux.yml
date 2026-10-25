@@ -91,9 +91,9 @@ jobs:
         id: setup-buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Libraries cache.
+      - name: Restore the Libraries cache.
         id: cache-libs
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ runner.temp }}/.buildx-cache
@@ -189,6 +189,7 @@ jobs:
             && env.ONLY_CACHE == 'false'
             && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -222,14 +223,26 @@ jobs:
           path: out/Release/artifact/
           retention-days: 7
 
-      - name: Save Libraries cache on failure.
+      - name: Save the Libraries cache.
         if: >
-          failure()
+          always()
             && steps.cache-libs.outputs.cache-hit != 'true'
             && steps.build-libs.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: |
             ${{ runner.temp }}/.buildx-cache
             ${{ runner.temp }}/.mount-cache
           key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+
+  prune:
+    needs: [linux]
+    if: github.ref == 'refs/heads/dev'
+    permissions:
+      actions: write
+    uses: ./.github/workflows/prune-caches.yml
+    with:
+      prefixes: |
+        Linux-libs-
+        Linux-tdesktop-

@@ -108,9 +108,9 @@ jobs:
           echo "RNNOISE=`curl -sSL --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/xiph/rnnoise/git/refs/heads/master | jq -r .object.sha`" >> $GITHUB_ENV
           echo "WEBRTC=`curl -sSL --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master | jq -r .object.sha`" >> $GITHUB_ENV
 
-      - name: Rust libraries cache.
+      - name: Restore the Rust libraries cache.
         id: cache-tdesktop-rust
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tdesktop_rust
           key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
@@ -169,9 +169,9 @@ jobs:
             --library --out-dir "$LibrariesPath/local/tdesktop_rust/include/wallet_engine" \
             target/release/libtdesktop_rust.dylib
 
-      - name: RNNoise cache.
+      - name: Restore the RNNoise cache.
         id: cache-rnnoise
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.LibrariesPath }}/local/rnnoise
           key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
@@ -188,9 +188,9 @@ jobs:
           make -j$(sysctl -n hw.logicalcpu)
           make install
 
-      - name: WebRTC cache.
+      - name: Restore the WebRTC cache.
         id: cache-webrtc
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tg_owt
           key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
@@ -207,9 +207,9 @@ jobs:
           cmake --build build
           cmake --install build
 
-      - name: TDE2E cache.
+      - name: Restore the TDE2E cache.
         id: cache-tde2e
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tde2e
           key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
@@ -284,42 +284,59 @@ jobs:
           path: ${{ env.REPO_NAME }}/build/artifact/
           retention-days: 1
 
-      - name: Save Rust libraries cache on failure.
+      - name: Save the Rust libraries cache.
         if: >
-          (failure() || cancelled())
+          always()
             && steps.cache-tdesktop-rust.outputs.cache-hit != 'true'
             && steps.rust-libs.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tdesktop_rust
           key: ${{ runner.OS }}-${{ matrix.arch }}-tdesktop-rust-${{ env.TLOTTIE }}-${{ env.WALLET_ENGINE }}-${{ env.RUST_PATCHES }}-${{ env.RUST_TOOLCHAIN }}-${{ env.CACHE_KEY }}
 
-      - name: Save RNNoise cache on failure.
+      - name: Save the RNNoise cache.
         if: >
-          (failure() || cancelled())
+          always()
             && steps.cache-rnnoise.outputs.cache-hit != 'true'
             && steps.rnnoise.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.LibrariesPath }}/local/rnnoise
           key: ${{ runner.OS }}-${{ matrix.arch }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
 
-      - name: Save WebRTC cache on failure.
+      - name: Save the WebRTC cache.
         if: >
-          (failure() || cancelled())
+          always()
             && steps.cache-webrtc.outputs.cache-hit != 'true'
             && steps.webrtc.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tg_owt
           key: ${{ runner.OS }}-${{ matrix.arch }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
 
-      - name: Save TDE2E cache on failure.
+      - name: Save the TDE2E cache.
         if: >
-          (failure() || cancelled())
+          always()
             && steps.cache-tde2e.outputs.cache-hit != 'true'
             && steps.tde2e.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.LibrariesPath }}/local/tde2e
           key: ${{ runner.OS }}-${{ matrix.arch }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
+
+  prune:
+    needs: [macos]
+    if: github.ref == 'refs/heads/dev'
+    permissions:
+      actions: write
+    uses: ./.github/workflows/prune-caches.yml
+    with:
+      prefixes: |
+        macOS-arm64-tdesktop-rust-
+        macOS-arm64-rnnoise-
+        macOS-arm64-webrtc-
+        macOS-arm64-tde2e-
