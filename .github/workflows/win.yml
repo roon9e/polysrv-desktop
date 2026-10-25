@@ -58,7 +58,7 @@ jobs:
       matrix:
         arch: [x64, arm64]
         qt: [""]
-        generator: [""]
+        generator: ["Ninja"]
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -344,7 +344,7 @@ jobs:
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
           %TDESKTOP_BUILD_DEFINE%
 
-          findstr ProcessorNumber ..\out\Telegram\Telegram.vcxproj
+          if exist ..\out\Telegram\Telegram.vcxproj findstr ProcessorNumber ..\out\Telegram\Telegram.vcxproj
 
           cmake --build ..\out --config Release --parallel 1
 
