@@ -152,7 +152,7 @@ void Account::applyServer(
 		loggedOut();
 	}
 	local().writeServerSelection(selection);
-	_serverScope = selection.host.toLower();
+	_serverScope = PolySrv::ServerScopeForHost(selection.host, selection.port);
 	resetAuthorizationKeys();
 }
 
@@ -172,7 +172,9 @@ void Account::restoreServer(MTP::Config *config) {
 		}
 		return;
 	}
-	_serverScope = selection->host.toLower();
+	_serverScope = PolySrv::ServerScopeForHost(
+		selection->host,
+		selection->port);
 	const auto server = PolySrv::FindServer(selection->id);
 	if (!server || !config) {
 		return;

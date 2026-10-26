@@ -1385,9 +1385,10 @@ bool Application::openServerLink(
 		return TryRouterForLocalUrl(controller, link.command);
 	}
 	case PolySrv::Link::Type::ServerHost: {
-		const auto host = link.serverHost.toLower();
 		for (const auto &account : _domain->orderedAccounts()) {
-			if (account->serverScope() != host) {
+			if (!PolySrv::ServerScopeMatchesHost(
+					account->serverScope(),
+					link.serverHost)) {
 				continue;
 			}
 			if (account->sessionExists()

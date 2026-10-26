@@ -282,6 +282,10 @@ base::flat_set<QString> Account::collectGoodNames() const {
 		"map1",
 		"maps",
 		"configs",
+		// The per-account server binding, so the async legacy cleanup does
+		// not delete it and the account keeps the server it joined.
+		"polysrv_server",
+		"polysrv_servers",
 	};
 	const auto push = [&](FileKey key) {
 		if (!key) {

@@ -8,12 +8,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "polysrv/polysrv_servers.h"
 
 #include "base/debug_log.h"
+#include "base/flat_set.h"
 #include "base/timer.h"
 #include "core/polysrv_remote.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "rpl/event_stream.h"
 #include "settings.h"
 
+#include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
@@ -22,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
+#include <QtCore/QCryptographicHash>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -35,11 +38,33 @@ namespace PolySrv {
 namespace {
 
 constexpr auto kMaxRemoteResponseSize = 256 * 1024;
+constexpr auto kMaxLogoResponseSize = 512 * 1024;
 constexpr auto kCheckTimeout = 5000;
 
 [[nodiscard]] QString CustomServersFile() {
 	return cWorkingDir() + u"tdata/polysrv_servers.json"_q;
 }
+
+[[nodiscard]] QString LogoCacheDir() {
+	return cWorkingDir() + u"tdata/polysrv_server_logos"_q;
+}
+
+[[nodiscard]] bool IsRemoteLogoPath(const QString &path) {
+	return path.startsWith(u"http://"_q, Qt::CaseInsensitive)
+		|| path.startsWith(u"https://"_q, Qt::CaseInsensitive);
+}
+
+[[nodiscard]] QString LogoFileName(const QString &url) {
+	return QString::fromLatin1(QCryptographicHash::hash(
+		url.toUtf8(),
+		QCryptographicHash::Sha1).toHex());
+}
+
+[[nodiscard]] QString CachedLogoPath(const QString &url) {
+	return LogoCacheDir() + u"/"_q + LogoFileName(url);
+}
+
+[[nodiscard]] std::vector<Server> MergeServers();
 
 [[nodiscard]] Server TelegramServer() {
 	return Server{
@@ -190,7 +215,9 @@ void WriteCustomServers(const std::vector<Server> &servers) {
 		}
 		const auto object = entry.toObject();
 		auto server = ServerFromJson(object);
-		if (server.valid()) {
+		// The name is required, and it is the operator's job to set it, so
+		// a nameless entry is dropped rather than shown as its address.
+		if (server.valid() && !server.name.isEmpty()) {
 			result.push_back(server);
 		}
 	}
@@ -203,6 +230,7 @@ struct State {
 	rpl::event_stream<> changed;
 	std::unique_ptr<QNetworkAccessManager> manager;
 	RemoteState remoteState;
+	base::flat_set<QString> logoFetches;
 	bool loaded = false;
 };
 
@@ -213,6 +241,57 @@ State &StateInstance() {
 		result.loaded = true;
 	}
 	return result;
+}
+
+void EnsureServerLogo(const Server &server) {
+	const auto &logoPath = server.logoPath;
+	if (logoPath.isEmpty()
+		|| logoPath.startsWith(u":/"_q)
+		|| !IsRemoteLogoPath(logoPath)) {
+		return;
+	}
+	auto &state = StateInstance();
+	const auto cached = CachedLogoPath(logoPath);
+	if (QFile::exists(cached) || state.logoFetches.contains(logoPath)) {
+		return;
+	}
+	if (!state.manager) {
+		state.manager = std::make_unique<QNetworkAccessManager>();
+	}
+	state.logoFetches.emplace(logoPath);
+	auto request = QNetworkRequest(QUrl(logoPath));
+	request.setAttribute(
+		QNetworkRequest::RedirectPolicyAttribute,
+		QNetworkRequest::NoLessSafeRedirectPolicy);
+	const auto reply = state.manager->get(request);
+	reply->connect(reply, &QNetworkReply::finished, [&state, reply, cached, logoPath] {
+		state.logoFetches.remove(logoPath);
+		const auto data = reply->readAll();
+		const auto error = reply->error();
+		reply->deleteLater();
+		if (error != QNetworkReply::NoError
+			|| data.isEmpty()
+			|| data.size() > kMaxLogoResponseSize) {
+			LOG(("PolySRV Error: could not read the logo from \"%1\".")
+				.arg(logoPath));
+			return;
+		}
+		QDir().mkpath(LogoCacheDir());
+		auto file = QSaveFile(cached);
+		if (!file.open(QIODevice::WriteOnly)) {
+			return;
+		}
+		file.write(data);
+		if (file.commit()) {
+			state.changed.fire({});
+		}
+	});
+}
+
+void EnsureServerLogos() {
+	for (const auto &server : MergeServers()) {
+		EnsureServerLogo(server);
+	}
 }
 
 [[nodiscard]] std::vector<Server> MergeServers() {
@@ -249,6 +328,7 @@ State &StateInstance() {
 		int(servers.size()),
 	};
 	state.changed.fire({});
+	EnsureServerLogos();
 	return true;
 }
 
@@ -335,14 +415,34 @@ void OnlineCheck::finish(bool online) {
 
 } // namespace
 
-uint64 ServerScopeHash(const QString &host) {
-	const auto utf8 = host.toLower().toUtf8();
+uint64 ServerScopeHash(const QString &scope) {
+	const auto utf8 = scope.toLower().toUtf8();
 	auto hash = quint32(2166136261u);
 	for (const auto byte : utf8) {
 		hash ^= quint32(quint8(byte));
 		hash *= quint32(16777619u);
 	}
 	return uint64(hash) << 24;
+}
+
+QString ServerScopeForHost(const QString &host, int port) {
+	if (host.isEmpty() || port <= 0) {
+		return QString();
+	}
+	return host.toLower() + u":"_q + QString::number(port);
+}
+
+QString ServerScopeFor(const Server &server) {
+	return server.isTelegram
+		? QString()
+		: ServerScopeForHost(server.primaryHost(), server.primaryPort());
+}
+
+bool ServerScopeMatchesHost(const QString &scope, const QString &host) {
+	if (scope.isEmpty() || host.isEmpty()) {
+		return false;
+	}
+	return scope.startsWith(host.toLower() + u":"_q);
 }
 
 uint64 ScopedSessionId(uint64 sessionId, const QString &scope) {
@@ -486,18 +586,22 @@ Server ServerForScope(const QString &scope) {
 	const auto found = std::find_if(servers.begin(), servers.end(),
 	[&](const Server &server) {
 		return !server.isTelegram
-			&& (server.primaryHost().compare(scope, Qt::CaseInsensitive) == 0);
+			&& (ServerScopeFor(server).compare(scope, Qt::CaseInsensitive) == 0);
 	});
 	if (found != servers.end()) {
 		return *found;
 	}
-	// The server was removed after the account joined it, so the host is
-	// all that names it now.
+	// The server was removed after the account joined it, so all that
+	// names it now is its scope, the host and the port.
 	auto result = Server();
 	result.id = scope;
 	result.name = scope;
-	result.host = scope;
-	result.port = 443;
+	const auto colon = scope.lastIndexOf(u':');
+	result.host = (colon > 0) ? scope.left(colon) : scope;
+	result.port = (colon > 0) ? scope.mid(colon + 1).toInt() : 0;
+	if (result.port <= 0) {
+		result.port = 443;
+	}
 	return result;
 }
 
@@ -508,7 +612,8 @@ std::optional<Server> AddCustomServer(
 	const QString &description,
 	const QString &rsaPublicKey,
 	bool multiDc,
-	int mainDcId) {
+	int mainDcId,
+	const QString &logoPath) {
 	auto server = Server();
 	server.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	server.name = name;
@@ -516,6 +621,7 @@ std::optional<Server> AddCustomServer(
 	server.port = port;
 	server.description = description;
 	server.rsaPublicKey = rsaPublicKey;
+	server.logoPath = logoPath;
 	server.multiDc = multiDc;
 	server.mainDcId = mainDcId;
 	if (!server.valid()) {
@@ -525,6 +631,7 @@ std::optional<Server> AddCustomServer(
 	state.custom.push_back(server);
 	WriteCustomServers(state.custom);
 	state.changed.fire({});
+	EnsureServerLogo(server);
 	return server;
 }
 
@@ -536,7 +643,8 @@ std::optional<Server> UpdateCustomServer(
 	const QString &description,
 	const QString &rsaPublicKey,
 	bool multiDc,
-	int mainDcId) {
+	int mainDcId,
+	const QString &logoPath) {
 	auto &state = StateInstance();
 	const auto found = std::find_if(state.custom.begin(), state.custom.end(),
 	[&](const Server &server) {
@@ -550,14 +658,17 @@ std::optional<Server> UpdateCustomServer(
 	found->port = port;
 	found->description = description;
 	found->rsaPublicKey = rsaPublicKey;
+	found->logoPath = logoPath;
 	found->multiDc = multiDc;
 	found->mainDcId = mainDcId;
 	if (!found->valid()) {
 		return std::nullopt;
 	}
+	const auto result = *found;
 	WriteCustomServers(state.custom);
 	state.changed.fire({});
-	return *found;
+	EnsureServerLogo(result);
+	return result;
 }
 
 bool RemoveCustomServer(const QString &id) {
@@ -598,6 +709,24 @@ void RefreshRemoteServers() {
 	state.remoteState = { RemoteStatus::Loading, QString(), 0 };
 	state.changed.fire({});
 	RequestRemoteList(state, ServersUrl(), ServersFallbackUrl());
+}
+
+void RefreshServerLogos() {
+	EnsureServerLogos();
+}
+
+QString LocalLogoPath(const QString &logoPath) {
+	if (logoPath.isEmpty()) {
+		return QString();
+	}
+	if (logoPath.startsWith(u":/"_q) || QFile::exists(logoPath)) {
+		return logoPath;
+	}
+	if (!IsRemoteLogoPath(logoPath)) {
+		return QString();
+	}
+	const auto cached = CachedLogoPath(logoPath);
+	return QFile::exists(cached) ? cached : QString();
 }
 
 RemoteState Remote() {
