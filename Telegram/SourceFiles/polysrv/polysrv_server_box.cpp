@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_widgets.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/effects/animations.h"
+#include "ui/effects/ripple_animation.h"
 #include "ui/layers/box_content.h"
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
@@ -545,6 +546,130 @@ void ServerDetailsBox::prepare() {
 	return value >= 1 && value <= kMaxMainDcId;
 }
 
+// The host and the port sit on one row, each with its own field, so the two
+// stay separate but read as one address.
+class PairFieldsRow final : public Ui::RpWidget {
+public:
+	PairFieldsRow(
+		QWidget *parent,
+		rpl::producer<QString> leftPlaceholder,
+		const QString &leftValue,
+		Qt::InputMethodHints leftHints,
+		rpl::producer<QString> rightPlaceholder,
+		const QString &rightValue,
+		Qt::InputMethodHints rightHints)
+	: RpWidget(parent)
+	, _left(
+		this,
+		st::defaultInputField,
+		Ui::InputField::Mode::NoNewlines,
+		std::move(leftPlaceholder),
+		leftValue)
+	, _right(
+		this,
+		st::defaultInputField,
+		Ui::InputField::Mode::NoNewlines,
+		std::move(rightPlaceholder),
+		rightValue) {
+		_left->setInputMethodHints(leftHints);
+		_right->setInputMethodHints(rightHints);
+	}
+
+	[[nodiscard]] not_null<Ui::InputField*> left() const {
+		return _left.data();
+	}
+	[[nodiscard]] not_null<Ui::InputField*> right() const {
+		return _right.data();
+	}
+
+protected:
+	int resizeGetHeight(int newWidth) override {
+		const auto rightWidth = st::introServerPortWidth;
+		const auto gap = st::introServerFieldGap;
+		_right->resizeToWidth(rightWidth);
+		_left->resizeToWidth(std::max(newWidth - rightWidth - gap, 1));
+		_left->moveToLeft(0, 0);
+		_right->moveToLeft(newWidth - rightWidth, 0);
+		return std::max(_left->height(), _right->height());
+	}
+
+private:
+	object_ptr<Ui::InputField> _left;
+	object_ptr<Ui::InputField> _right;
+};
+
+// The chosen logo as a thumbnail and the picker itself: the picture is the
+// button that adds or replaces the image, never a text field.
+class LogoRow final : public Ui::RippleButton {
+public:
+	LogoRow(QWidget *parent, QString path)
+	: RippleButton(parent, st::defaultRippleAnimation)
+	, _logo(this)
+	, _label(
+		this,
+		tr::lng_polysrv_server_logo_choose(tr::now),
+		st::introServerRowName)
+	, _path(std::move(path)) {
+		const auto size = st::introServerLogoThumb;
+		_logo->resize(size, size);
+		_logo->setAttribute(Qt::WA_TransparentForMouseEvents);
+		_label->setAttribute(Qt::WA_TransparentForMouseEvents);
+		_logo->paintRequest(
+		) | rpl::on_next([=] {
+			auto p = QPainter(_logo.data());
+			PaintServerLogo(p, size, LogoServer());
+		}, _logo->lifetime());
+		resize(parent->width(), st::introServerLogoRowHeight);
+	}
+
+	[[nodiscard]] QString path() const {
+		return _path;
+	}
+	void setPath(const QString &path) {
+		if (_path == path) {
+			return;
+		}
+		_path = path;
+		_logo->update();
+	}
+
+protected:
+	void resizeEvent(QResizeEvent *e) override {
+		RippleButton::resizeEvent(e);
+		const auto size = st::introServerLogoThumb;
+		_logo->moveToLeft(0, (height() - size) / 2);
+		const auto left = size + st::introServerLogoSkip;
+		_label->resizeToWidth(std::max(width() - left, 1));
+		_label->moveToLeft(left, (height() - _label->height()) / 2);
+	}
+	void paintEvent(QPaintEvent *e) override {
+		auto p = Painter(this);
+		p.setClipRect(e->rect());
+		PainterHighQualityEnabler hq(p);
+		const auto radius = st::introServerRowRadius;
+		p.setPen(Qt::NoPen);
+		p.setBrush(isOver() ? st::windowBgOver : st::boxBg);
+		p.drawRoundedRect(rect(), radius, radius);
+		paintRipple(p, 0, 0);
+	}
+	[[nodiscard]] QImage prepareRippleMask() const override {
+		return Ui::RippleAnimation::RoundRectMask(
+			size(),
+			st::introServerRowRadius);
+	}
+
+private:
+	[[nodiscard]] Server LogoServer() const {
+		auto server = Server();
+		server.logoPath = _path;
+		return server;
+	}
+
+	object_ptr<Ui::RpWidget> _logo;
+	object_ptr<Ui::FlatLabel> _label;
+	QString _path;
+};
+
 } // namespace
 
 void PaintServerLogo(QPainter &p, int size, const Server &server) {
@@ -645,6 +770,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 		box->setTitle(editing
 			? tr::lng_polysrv_edit_server()
 			: tr::lng_polysrv_add_server());
+		box->setWidth(st::boxWideWidth);
 
 		const auto header = box->addRow(
 			object_ptr<HeaderRow>(box, initial),
@@ -658,20 +784,10 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 			box,
 			tr::lng_polysrv_server_description_field(),
 			initial.description);
-		const auto logo = AddField(
-			box,
-			tr::lng_polysrv_server_logo(),
-			initial.logoPath,
-			Qt::ImhUrlCharactersOnly
-				| Qt::ImhNoAutoUppercase
-				| Qt::ImhNoPredictiveText);
-		const auto chooseLogo = box->addRow(
-			object_ptr<Ui::LinkButton>(
-				box,
-				tr::lng_polysrv_server_logo_choose(tr::now),
-				st::boxLinkButton),
+		const auto logo = box->addRow(
+			object_ptr<LogoRow>(box, initial.logoPath),
 			st::boxRowPadding);
-		chooseLogo->setClickedCallback([=] {
+		logo->setClickedCallback([=] {
 			const auto weak = QPointer<Ui::GenericBox>(box.get());
 			FileDialog::GetOpenPath(
 				box.get(),
@@ -681,21 +797,24 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 					if (!weak || result.paths.isEmpty()) {
 						return;
 					}
-					logo->setText(result.paths.front());
+					logo->setPath(result.paths.front());
 				});
 		});
-		const auto host = AddField(
-			box,
-			tr::lng_polysrv_server_host(),
-			initial.host,
-			Qt::ImhUrlCharactersOnly
-				| Qt::ImhNoAutoUppercase
-				| Qt::ImhNoPredictiveText);
-		const auto port = AddField(
-			box,
-			tr::lng_polysrv_server_port(),
-			QString::number(initial.port > 0 ? initial.port : kDefaultPort),
-			Qt::ImhDigitsOnly | Qt::ImhNoPredictiveText);
+		const auto address = box->addRow(
+			object_ptr<PairFieldsRow>(
+				box,
+				tr::lng_polysrv_server_host(),
+				initial.host,
+				Qt::ImhUrlCharactersOnly
+					| Qt::ImhNoAutoUppercase
+					| Qt::ImhNoPredictiveText,
+				tr::lng_polysrv_server_port(),
+				QString::number(
+					initial.port > 0 ? initial.port : kDefaultPort),
+				Qt::ImhDigitsOnly | Qt::ImhNoPredictiveText),
+			st::boxRowPadding);
+		const auto host = address->left();
+		const auto port = address->right();
 		const auto mainDc = AddField(
 			box,
 			tr::lng_polysrv_server_main_dc(),
@@ -763,7 +882,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 				: mainDcText.toInt();
 			const auto serverDescription = description->getLastText().trimmed();
 			const auto serverKey = key->getLastText().trimmed();
-			const auto serverLogo = logo->getLastText().trimmed();
+			const auto serverLogo = logo->path().trimmed();
 			const auto write = [=]() -> std::optional<Server> {
 				const auto written = editing
 					? UpdateCustomServer(
