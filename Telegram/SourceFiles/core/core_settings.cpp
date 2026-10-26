@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_quick_action.h"
 #include "lang/lang_keys.h"
 #include "platform/platform_notifications_manager.h"
+#include "settings.h"
 #include "spellcheck/spellcheck_types.h"
 #include "storage/serialize_common.h"
 #include "ui/gl/gl_detection.h"
@@ -19,6 +20,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "webrtc/webrtc_create_adm.h"
 #include "webrtc/webrtc_device_common.h"
 #include "window/section_widget.h"
+
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 
 namespace Core {
 namespace {
@@ -106,6 +114,80 @@ void LogPosition(const WindowPosition &position, const QString &name) {
 		return {};
 	}
 	return RecentEmojiDocument{ id, (test == '1') };
+}
+
+// Per-server recent custom emoji, kept in a small standalone JSON file next
+// to the working directory instead of the versioned serialize() blob, so a
+// document id cached on one server never persists into another's list.
+[[nodiscard]] QString RecentEmojiScopeFilePath() {
+	return cWorkingDir() + u"tdata/polysrv_recent_emoji.json"_q;
+}
+
+[[nodiscard]] std::vector<RecentEmoji> ReadRecentEmojiScopeFile(
+		const QString &scope) {
+	auto result = std::vector<RecentEmoji>();
+	QFile file(RecentEmojiScopeFilePath());
+	if (!file.open(QIODevice::ReadOnly)) {
+		return result;
+	}
+	const auto document = QJsonDocument::fromJson(file.readAll());
+	if (!document.isObject()) {
+		return result;
+	}
+	const auto array = document.object().value(scope).toArray();
+	result.reserve(array.size());
+	for (const auto &value : array) {
+		if (!value.isObject()) {
+			continue;
+		}
+		const auto object = value.toObject();
+		const auto parsed = ParseRecentEmojiDocument(
+			object.value(u"id"_q).toString());
+		if (!parsed) {
+			continue;
+		}
+		const auto rating = ushort(std::clamp(
+			object.value(u"rating"_q).toInt(1),
+			1,
+			0xFFFF));
+		result.push_back({ { *parsed }, rating });
+	}
+	return result;
+}
+
+void WriteRecentEmojiScopeFile(
+		const QString &scope,
+		const std::vector<RecentEmoji> &list) {
+	const auto path = RecentEmojiScopeFilePath();
+	auto root = QJsonObject();
+	QFile readFile(path);
+	if (readFile.open(QIODevice::ReadOnly)) {
+		const auto document = QJsonDocument::fromJson(readFile.readAll());
+		if (document.isObject()) {
+			root = document.object();
+		}
+		readFile.close();
+	}
+	auto array = QJsonArray();
+	for (const auto &entry : list) {
+		if (const auto document = std::get_if<RecentEmojiDocument>(
+				&entry.id.data)) {
+			auto object = QJsonObject();
+			object.insert(u"id"_q, Serialize(*document));
+			object.insert(u"rating"_q, int(entry.rating));
+			array.push_back(object);
+		}
+	}
+	if (array.isEmpty()) {
+		root.remove(scope);
+	} else {
+		root.insert(scope, array);
+	}
+	QDir().mkpath(QFileInfo(path).absolutePath());
+	QFile writeFile(path);
+	if (writeFile.open(QIODevice::WriteOnly)) {
+		writeFile.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+	}
 }
 
 [[nodiscard]] quint32 SerializeVideoQuality(Media::VideoQuality quality) {
@@ -1628,6 +1710,81 @@ void Settings::resetRecentEmoji() {
 
 	_recentEmojiUpdated.fire({});
 	_saveDelayed.fire({});
+}
+
+std::vector<RecentEmoji> Settings::recentEmojiForScope(
+		const QString &scope) const {
+	if (scope.isEmpty()) {
+		return recentEmoji();
+	}
+	if (_recentEmojiDocumentsByScopeLoaded.emplace(scope).second) {
+		_recentEmojiDocumentsByScope[scope] = ReadRecentEmojiScopeFile(scope);
+	}
+	auto result = std::vector<RecentEmoji>();
+	for (const auto &entry : recentEmoji()) {
+		if (std::get_if<EmojiPtr>(&entry.id.data)) {
+			result.push_back(entry);
+		}
+	}
+	const auto i = _recentEmojiDocumentsByScope.find(scope);
+	if (i != _recentEmojiDocumentsByScope.end()) {
+		result.insert(result.end(), i->second.begin(), i->second.end());
+	}
+	std::sort(
+		result.begin(),
+		result.end(),
+		[](const RecentEmoji &a, const RecentEmoji &b) {
+			return a.rating > b.rating;
+		});
+	if (result.size() > kRecentEmojiLimit) {
+		result.resize(kRecentEmojiLimit);
+	}
+	return result;
+}
+
+void Settings::incrementRecentEmojiForScope(
+		RecentEmojiId id,
+		const QString &scope) {
+	if (scope.isEmpty() || std::get_if<EmojiPtr>(&id.data)) {
+		incrementRecentEmoji(id);
+		return;
+	}
+	if (_recentEmojiDocumentsByScopeLoaded.emplace(scope).second) {
+		_recentEmojiDocumentsByScope[scope] = ReadRecentEmojiScopeFile(scope);
+	}
+	auto &list = _recentEmojiDocumentsByScope[scope];
+	auto i = list.begin(), e = list.end();
+	for (; i != e; ++i) {
+		if (i->id == id) {
+			++i->rating;
+			if (i->rating > 0x8000) {
+				for (auto j = list.begin(); j != e; ++j) {
+					j->rating = std::max<ushort>(j->rating / 2, 1);
+				}
+			}
+			for (; i != list.begin(); --i) {
+				if ((i - 1)->rating > i->rating) {
+					break;
+				}
+				std::swap(*i, *(i - 1));
+			}
+			break;
+		}
+	}
+	if (i == e) {
+		list.push_back({ id, 1 });
+		for (i = list.end() - 1; i != list.begin(); --i) {
+			if ((i - 1)->rating > i->rating) {
+				break;
+			}
+			std::swap(*i, *(i - 1));
+		}
+		while (list.size() > kRecentEmojiLimit) {
+			list.pop_back();
+		}
+	}
+	WriteRecentEmojiScopeFile(scope, list);
+	_recentEmojiUpdated.fire({});
 }
 
 void Settings::setLegacyRecentEmojiPreload(

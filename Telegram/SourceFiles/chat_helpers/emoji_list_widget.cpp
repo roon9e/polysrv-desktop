@@ -51,6 +51,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/stickers_list_footer.h"
 #include "emoji_suggestions_data.h"
 #include "emoji_suggestions_helper.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "mainwidget.h"
@@ -1938,7 +1939,8 @@ void EmojiListWidget::fillRecent() {
 	_recent.clear();
 	_recentCustomIds.clear();
 
-	const auto &list = Core::App().settings().recentEmoji();
+	const auto scope = session().account().serverScope();
+	const auto list = Core::App().settings().recentEmojiForScope(scope);
 	_recent.reserve(std::min(int(list.size()), Core::kRecentEmojiLimit) + 1);
 	const auto test = session().isTestMode();
 	for (const auto &one : list) {
@@ -3112,7 +3114,9 @@ void EmojiListWidget::removeSet(uint64 setId) {
 }
 
 void EmojiListWidget::selectEmoji(EmojiChosen data) {
-	Core::App().settings().incrementRecentEmoji({ data.emoji });
+	Core::App().settings().incrementRecentEmojiForScope(
+		{ data.emoji },
+		session().account().serverScope());
 	_chosen.fire(std::move(data));
 }
 
@@ -3121,10 +3125,12 @@ void EmojiListWidget::selectCustom(FileChosen data) {
 	const auto skip = (document->isPremiumEmoji() && !session().premium());
 	if (!skip && _mode == Mode::Full) {
 		auto &settings = Core::App().settings();
-		settings.incrementRecentEmoji({ RecentEmojiDocument{
-			document->id,
-			document->session().isTestMode(),
-		} });
+		settings.incrementRecentEmojiForScope(
+			{ RecentEmojiDocument{
+				document->id,
+				document->session().isTestMode(),
+			} },
+			session().account().serverScope());
 	}
 	_customChosen.fire(std::move(data));
 }

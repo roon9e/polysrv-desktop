@@ -790,6 +790,13 @@ public:
 		return _recentEmojiUpdated.events();
 	}
 
+	// A per-server view over the recent custom emoji, so a document id
+	// cached on one server never appears on another. An empty scope is the
+	// official Telegram network and keeps the shared list alone.
+	[[nodiscard]] std::vector<RecentEmoji> recentEmojiForScope(
+		const QString &scope) const;
+	void incrementRecentEmojiForScope(RecentEmojiId id, const QString &scope);
+
 	[[nodiscard]] const base::flat_map<QString, uint8> &emojiVariants() const {
 		return _emojiVariants;
 	}
@@ -1148,6 +1155,8 @@ private:
 	mutable std::vector<RecentEmoji> _recentEmoji;
 	base::flat_set<QString> _recentEmojiSkip;
 	mutable bool _recentEmojiResolved = false;
+	mutable base::flat_map<QString, std::vector<RecentEmoji>> _recentEmojiDocumentsByScope;
+	mutable base::flat_set<QString> _recentEmojiDocumentsByScopeLoaded;
 	base::flat_map<QString, uint8> _emojiVariants;
 	rpl::event_stream<> _recentEmojiUpdated;
 	bool _tabbedSelectorSectionEnabled = false; // per-window
