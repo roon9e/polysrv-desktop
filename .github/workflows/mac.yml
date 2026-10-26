@@ -136,25 +136,26 @@ jobs:
           fi
 
           ./configure.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Debug \
+          -G Ninja \
+          -D CMAKE_BUILD_TYPE=Debug \
           -D CMAKE_OSX_ARCHITECTURES=$MACOSX_ARCH \
+          -D DESKTOP_APP_MAC_ARCH=$MACOSX_ARCH \
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
-          -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF \
           $DEFINE
 
-          cmake --build ../out --config Debug --parallel
+          cmake --build ../out --parallel
 
-          codesign --force --deep --sign - ../out/Debug/PolySRV.app
-          codesign --force --sign - ../out/Debug/Updater
-          codesign --verify --deep --strict --verbose=2 ../out/Debug/PolySRV.app
+          codesign --force --deep --sign - ../out/PolySRV.app
+          codesign --force --sign - ../out/Updater
+          codesign --verify --deep --strict --verbose=2 ../out/PolySRV.app
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd $REPO_NAME/out/Debug
+          cd $REPO_NAME/out
           mkdir artifact
           ditto -c -k --sequesterRsrc --keepParent PolySRV.app artifact/PolySRV-macos-${{ matrix.arch }}.zip
           cp Updater artifact/
@@ -163,7 +164,7 @@ jobs:
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}/out/Debug/artifact/
+          path: ${{ env.REPO_NAME }}/out/artifact/
           retention-days: 1
 
   prune:
