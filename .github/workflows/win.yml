@@ -327,6 +327,17 @@ jobs:
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-qt-v3-${{ env.CACHE_KEY }}-${{ env.QT_KEYS_HASH }}
 
+      - name: Compute build parallelism.
+        shell: pwsh
+        run: |
+          $ram = [double](Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+          $cpu = [Environment]::ProcessorCount
+          $byRam = [int][Math]::Floor($ram / 2.5GB)
+          $parallel = [Math]::Min($cpu, $byRam)
+          if ($parallel -lt 1) { $parallel = 1 }
+          "RAM=$ram CPU=$cpu PARALLEL=$parallel"
+          "TDESKTOP_BUILD_PARALLEL=$parallel" >> $env:GITHUB_ENV
+
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
@@ -348,7 +359,7 @@ jobs:
 
           if exist ..\out\Telegram\Telegram.vcxproj findstr ProcessorNumber ..\out\Telegram\Telegram.vcxproj
 
-          cmake --build ..\out --config Release --parallel 1
+          cmake --build ..\out --config Release --parallel %TDESKTOP_BUILD_PARALLEL%
 
       - name: Diagnose Ninja compile failure.
         if: failure() && matrix.generator == 'Ninja'
