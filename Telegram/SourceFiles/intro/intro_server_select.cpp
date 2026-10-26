@@ -576,7 +576,6 @@ void ServerSelectWidget::proceedJoin(const PolySrv::Server &server) {
 		server.primaryPort());
 	Ui::show(
 		Box<ConnectingBox>(
-			this,
 			&account(),
 			server.name,
 			crl::guard(this, [=] { goNext<QrWidget>(); })),

@@ -353,7 +353,7 @@ void QrWidget::setupControls() {
 		custom
 			? tr::lng_intro_qr_step1_server(
 				lt_server,
-				rpl::single(name),
+				rpl::single(tr::marked(name)),
 				tr::rich)
 			: tr::lng_intro_qr_step1(tr::rich),
 		tr::lng_intro_qr_step2(tr::rich),
