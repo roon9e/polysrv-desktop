@@ -348,6 +348,43 @@ jobs:
 
           cmake --build ..\out --config Release --parallel 1
 
+      - name: Diagnose Ninja compile failure.
+        if: failure() && matrix.generator == 'Ninja'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $out = Join-Path $env:TBUILD "$env:REPO_NAME\out"
+          "OUT=$out"
+          "CMAKE=$((Get-Command cmake -ErrorAction SilentlyContinue).Source)"
+          & cmake --version | Select-Object -First 1
+          $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
+          if (-not $ninja) {
+            $ninja = (Get-ChildItem 'C:\Program Files*\Microsoft Visual Studio\*\*\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe' -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          }
+          "NINJA=$ninja"
+          & $ninja --version
+          Push-Location $out
+          & $ninja -t commands external_qt_static_plugins_kimageformats 2>&1 | Out-File -Encoding utf8 cmds.txt
+          $line = Get-Content cmds.txt | Where-Object { $_ -match 'scanlineconverter\.cpp' -and $_ -match 'cl(\.exe)?' } | Select-Object -First 1
+          "CMDLEN=$($line.Length)"
+          "----- exact command -----"
+          $line
+          function Run-Variant($name, $cmd) {
+            "===== VARIANT $name ====="
+            Set-Content -Path variant.bat -Value $cmd -Encoding ascii
+            & cmd.exe /c variant.bat > vout.txt 2>&1
+            "exit=$LASTEXITCODE"
+            Get-Content vout.txt -ErrorAction SilentlyContinue | Where-Object { $_ -match 'error|fatal|C1083|C1060|warning C' } | Select-Object -First 8
+          }
+          Run-Variant 'asis' $line
+          Run-Variant 'noFS' ($line -replace '/FS','')
+          Run-Variant 'noFd' ($line -replace '/Fd[^ ]*','')
+          Run-Variant 'noZ7' ($line -replace '[-/]Z7','')
+          Run-Variant 'noWX' ($line -replace '[-/]WX','')
+          Run-Variant 'noFd_noFS' (($line -replace '/FS','') -replace '/Fd[^ ]*','')
+          Pop-Location
+
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
