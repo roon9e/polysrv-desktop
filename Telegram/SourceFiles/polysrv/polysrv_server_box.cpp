@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "boxes/abstract_box.h"
 #include "core/application.h"
+#include "core/file_utilities.h"
 #include "lang/lang_keys.h"
 #include "main/main_account.h"
 #include "main/main_domain.h"
@@ -50,21 +51,13 @@ constexpr auto kMaxMainDcId = 5;
 }
 
 [[nodiscard]] QString LogoPathFor(const Server &server) {
-	const auto &path = server.logoPath;
-	if (path.isEmpty()) {
-		return QString();
-	}
-	return (path.startsWith(u":/"_q) || QFile::exists(path))
-		? path
-		: QString();
+	return PolySrv::LocalLogoPath(server.logoPath);
 }
 
 [[nodiscard]] std::vector<not_null<Main::Account*>> AccountsUsingServer(
 		const Server &server) {
 	auto result = std::vector<not_null<Main::Account*>>();
-	const auto scope = server.isTelegram
-		? QString()
-		: server.primaryHost().toLower();
+	const auto scope = PolySrv::ServerScopeFor(server);
 	if (scope.isEmpty()) {
 		return result;
 	}
@@ -612,6 +605,7 @@ void ShowServerDetailsBox(
 }
 
 void ShowServerListBox() {
+	RefreshServerLogos();
 	Ui::show(Box([](not_null<Ui::GenericBox*> box) {
 		box->setTitle(tr::lng_polysrv_servers_title());
 
@@ -643,13 +637,14 @@ void ShowServerListBox() {
 }
 
 void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
+	RefreshServerLogos();
 	const auto initial = server.value_or(Server());
 	const auto editingId = initial.id;
 	const auto editing = server.has_value() && IsCustomServer(editingId);
 	Ui::show(Box([=](not_null<Ui::GenericBox*> box) {
 		box->setTitle(editing
 			? tr::lng_polysrv_edit_server()
-			: tr::lng_polysrv_new_server());
+			: tr::lng_polysrv_add_server());
 
 		const auto header = box->addRow(
 			object_ptr<HeaderRow>(box, initial),
@@ -663,6 +658,32 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 			box,
 			tr::lng_polysrv_server_description_field(),
 			initial.description);
+		const auto logo = AddField(
+			box,
+			tr::lng_polysrv_server_logo(),
+			initial.logoPath,
+			Qt::ImhUrlCharactersOnly
+				| Qt::ImhNoAutoUppercase
+				| Qt::ImhNoPredictiveText);
+		const auto chooseLogo = box->addRow(
+			object_ptr<Ui::LinkButton>(
+				box,
+				tr::lng_polysrv_server_logo_choose(),
+				st::boxLinkButton),
+			st::boxRowPadding);
+		chooseLogo->setClickedCallback([=] {
+			const auto weak = QPointer<Ui::GenericBox>(box.get());
+			FileDialog::GetOpenPath(
+				box.get(),
+				tr::lng_polysrv_server_logo_choose(tr::now),
+				u"Images (*.png *.jpg *.jpeg *.webp *.bmp)"_q,
+				[=](FileDialog::OpenResult &&result) {
+					if (!weak || result.paths.isEmpty()) {
+						return;
+					}
+					logo->setText(result.paths.front());
+				});
+		});
 		const auto host = AddField(
 			box,
 			tr::lng_polysrv_server_host(),
@@ -704,14 +725,9 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 			if (!typed.isEmpty()) {
 				return typed;
 			}
-			const auto typedHost = host->getLastText().trimmed();
-			if (!typedHost.isEmpty()) {
-				return typedHost;
-			}
-			const auto label = ServerRowLabel(initial);
-			return label.isEmpty()
-				? tr::lng_polysrv_new_server(tr::now)
-				: label;
+			return initial.name.isEmpty()
+				? tr::lng_polysrv_add_server(tr::now)
+				: initial.name;
 		};
 		const auto updatePreview = [=] {
 			header->setText(previewText());
@@ -747,6 +763,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 				: mainDcText.toInt();
 			const auto serverDescription = description->getLastText().trimmed();
 			const auto serverKey = key->getLastText().trimmed();
+			const auto serverLogo = logo->getLastText().trimmed();
 			const auto write = [=]() -> std::optional<Server> {
 				const auto written = editing
 					? UpdateCustomServer(
@@ -757,7 +774,8 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 						serverDescription,
 						serverKey,
 						isMultiDc,
-						mainDcId)
+						mainDcId,
+						serverLogo)
 					: AddCustomServer(
 						serverName,
 						serverHost,
@@ -765,7 +783,8 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 						serverDescription,
 						serverKey,
 						isMultiDc,
-						mainDcId);
+						mainDcId,
+						serverLogo);
 				if (!written) {
 					host->showError();
 				}

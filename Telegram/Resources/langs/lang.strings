@@ -411,6 +411,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_server_main_dc" = "Main data center (1-5)";
 "lng_polysrv_server_multi_dc" = "Multi-DC server";
 "lng_polysrv_server_rsa_key" = "RSA public key (PEM)";
+"lng_polysrv_server_logo" = "Logo image or URL (optional)";
+"lng_polysrv_server_logo_choose" = "Choose image";
 "lng_polysrv_server_endpoint" = "{host} · Port {port}";
 "lng_polysrv_server_online" = "Online";
 "lng_polysrv_server_offline" = "Offline";
@@ -419,6 +421,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_polysrv_server_join" = "Join";
 "lng_polysrv_server_invalid" = "This server is not configured properly.";
 "lng_polysrv_server_offline_confirm" = "This server is not reachable right now. Try to connect anyway?";
+"lng_polysrv_connecting" = "Connecting to {server}";
+"lng_polysrv_connection_failed" = "Could not connect to the server.";
 "lng_polysrv_server_details_title" = "Server";
 "lng_polysrv_server_details_host" = "Host";
 "lng_polysrv_server_details_port" = "Port";
@@ -442,7 +446,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_photos_comment" = "Comment";
 
 "lng_intro_qr_title" = "Scan From Mobile Telegram";
+"lng_intro_qr_title_server" = "Scan From Mobile {server}";
 "lng_intro_qr_step1" = "Open Telegram on your phone";
+"lng_intro_qr_step1_server" = "Open {server} on your phone";
 "lng_intro_qr_step2" = "Go to Settings > Devices > Link Desktop Device";
 "lng_intro_qr_step3" = "Scan this image to Log In";
 "lng_intro_qr_skip" = "Or log in using your phone number";

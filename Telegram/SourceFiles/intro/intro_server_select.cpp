@@ -12,9 +12,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "intro/intro_qr.h"
 #include "lang/lang_keys.h"
 #include "main/main_account.h"
+#include "mtproto/facade.h"
 #include "polysrv/polysrv_server_box.h"
 #include "polysrv/polysrv_servers.h"
 #include "styles/style_intro.h"
+#include "styles/style_layers.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/ripple_animation.h"
@@ -25,6 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/scroll_area.h"
+#include "ui/wrap/padding_wrap.h"
+#include "ui/wrap/vertical_layout.h"
 
 #include <algorithm>
 #include <cmath>
@@ -252,6 +256,131 @@ QImage ServerRow::prepareRippleMask() const {
 		st::introServerRowRadius);
 }
 
+constexpr auto kConnectPollMs = crl::time(250);
+constexpr auto kConnectTimeout = crl::time(20000);
+constexpr auto kConnectDotsMs = crl::time(400);
+constexpr auto kConnectMaxDots = 3;
+
+// The screen shown while the client connects to the chosen server, before
+// the QR code is drawn. Escape and outside click stay off so a stray click
+// cannot drop an in-flight attempt, but Cancel is always present.
+class ConnectingBox final : public Ui::BoxContent {
+public:
+	ConnectingBox(
+		QWidget *,
+		not_null<Main::Account*> account,
+		const QString &serverName,
+		Fn<void()> ready)
+	: _account(account)
+	, _serverName(serverName)
+	, _ready(std::move(ready)) {
+	}
+
+	void showFailed();
+
+protected:
+	void prepare() override;
+
+private:
+	void poll();
+	void updateText();
+
+	const not_null<Main::Account*> _account;
+	const QString _serverName;
+	Fn<void()> _ready;
+	QPointer<Ui::FlatLabel> _label;
+	QPointer<Ui::RoundButton> _button;
+	base::Timer _poll;
+	base::Timer _dots;
+	crl::time _started = 0;
+	int _dotsCount = 0;
+	bool _failed = false;
+	bool _finished = false;
+};
+
+void ConnectingBox::prepare() {
+	setCloseByEscape(false);
+	setCloseByOutsideClick(false);
+
+	const auto content = setInnerWidget(
+		object_ptr<Ui::VerticalLayout>(this));
+	content->add(
+		object_ptr<Ui::FixedHeightWidget>(content, st::boxLittleSkip));
+	_label = content->add(
+		object_ptr<Ui::FlatLabel>(
+			content,
+			QString(),
+			st::introErrorCentered),
+		st::boxRowPadding);
+	content->add(
+		object_ptr<Ui::FixedHeightWidget>(content, st::boxLittleSkip));
+	updateText();
+
+	_dots.setCallback([=] {
+		_dotsCount = (_dotsCount + 1) % (kConnectMaxDots + 1);
+		updateText();
+	});
+	_dots.callEach(kConnectDotsMs);
+
+	_button = addButton(tr::lng_cancel(), [=] {
+		_finished = true;
+		_poll.cancel();
+		_dots.cancel();
+		closeBox();
+	});
+
+	_poll.setCallback([=] { poll(); });
+	_started = crl::now();
+	_poll.callEach(kConnectPollMs);
+
+	setDimensionsToContent(st::boxWidth, content);
+}
+
+void ConnectingBox::poll() {
+	if (_finished) {
+		return;
+	}
+	if (_account->mtp().dcstate() == MTP::ConnectedState) {
+		_finished = true;
+		_poll.cancel();
+		_dots.cancel();
+		if (_ready) {
+			_ready();
+		}
+		closeBox();
+		return;
+	}
+	if (crl::now() - _started >= kConnectTimeout) {
+		showFailed();
+	}
+}
+
+void ConnectingBox::showFailed() {
+	if (_failed || _finished) {
+		return;
+	}
+	_failed = true;
+	_dots.cancel();
+	updateText();
+	if (_button) {
+		_button->setText(tr::lng_close());
+	}
+}
+
+void ConnectingBox::updateText() {
+	if (!_label) {
+		return;
+	}
+	if (_failed) {
+		_label->setText(tr::lng_polysrv_connection_failed(tr::now));
+	} else {
+		_label->setText(tr::lng_polysrv_connecting(
+			tr::now,
+			lt_server,
+			_serverName) + QString(_dotsCount, '.'));
+	}
+}
+
 } // namespace
 
 ServerSelectWidget::ServerSelectWidget(
@@ -325,6 +454,7 @@ void ServerSelectWidget::activate() {
 	_scroll->show();
 	_rowsContainer->show();
 	_addServer->show();
+	PolySrv::RefreshServerLogos();
 	if (const auto remote = PolySrv::Remote();
 		remote.status != PolySrv::RemoteStatus::Succeeded
 		&& remote.status != PolySrv::RemoteStatus::Loading) {
@@ -444,7 +574,13 @@ void ServerSelectWidget::proceedJoin(const PolySrv::Server &server) {
 		server.id,
 		server.primaryHost(),
 		server.primaryPort());
-	goNext<QrWidget>();
+	Ui::show(
+		Box<ConnectingBox>(
+			this,
+			&account(),
+			server.name,
+			crl::guard(this, [=] { goNext<QrWidget>(); })),
+		Ui::LayerOption::KeepOther);
 }
 
 void ServerSelectWidget::updateStatus() {

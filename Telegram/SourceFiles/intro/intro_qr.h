@@ -42,6 +42,10 @@ public:
 private:
 	int errorTop() const override;
 
+	[[nodiscard]] bool onCustomServer() const;
+	[[nodiscard]] QString serverName() const;
+	[[nodiscard]] rpl::producer<QString> titleText() const;
+
 	void sendCheckPasswordRequest();
 	void setupControls();
 	void setupPasskeyLink();
