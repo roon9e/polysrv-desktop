@@ -668,7 +668,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 		const auto chooseLogo = box->addRow(
 			object_ptr<Ui::LinkButton>(
 				box,
-				tr::lng_polysrv_server_logo_choose(),
+				tr::lng_polysrv_server_logo_choose(tr::now),
 				st::boxLinkButton),
 			st::boxRowPadding);
 		chooseLogo->setClickedCallback([=] {
