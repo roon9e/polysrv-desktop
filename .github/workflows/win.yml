@@ -77,6 +77,7 @@ jobs:
           mkdir "%ROOT%\TBuild\Libraries"
           if not exist "%GITHUB_WORKSPACE%\TBuild" mklink /d "%GITHUB_WORKSPACE%\TBuild" "%ROOT%\TBuild"
           echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo REALTBUILD=%ROOT%\TBuild>>%GITHUB_ENV%
           echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries${{ matrix.arch == 'x64' && '\win64' || '' }}>>%GITHUB_ENV%
 
       - name: Report disk space.
@@ -329,7 +330,7 @@ jobs:
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
-          cd %TBUILD%\%REPO_NAME%\Telegram
+          cd /d %REALTBUILD%\%REPO_NAME%\Telegram
 
           call configure.bat ^
           %TDESKTOP_BUILD_GENERATOR% ^
