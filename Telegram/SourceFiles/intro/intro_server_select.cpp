@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h"
 #include "mtproto/facade.h"
 #include "polysrv/polysrv_server_box.h"
+#include "polysrv/polysrv_server_row.h"
 #include "polysrv/polysrv_servers.h"
 #include "styles/style_intro.h"
 #include "styles/style_layers.h"
@@ -38,223 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Intro {
 namespace details {
 namespace {
-
-class ServerRow final : public Ui::RippleButton {
-public:
-	ServerRow(
-		QWidget *parent,
-		PolySrv::Server server,
-		Fn<void()> details,
-		Fn<void()> join);
-
-private:
-	void setStatus(bool online, int latencyMs);
-	void updateLayout();
-	void paintEvent(QPaintEvent *e) override;
-	void resizeEvent(QResizeEvent *e) override;
-	QImage prepareRippleMask() const override;
-
-	const PolySrv::Server _server;
-	const Fn<void()> _details;
-	const Fn<void()> _join;
-
-	object_ptr<Ui::RpWidget> _logo;
-	object_ptr<Ui::FlatLabel> _name;
-	object_ptr<Ui::FlatLabel> _endpoint;
-	object_ptr<Ui::FlatLabel> _status;
-	object_ptr<Ui::FlatLabel> _latency;
-	object_ptr<Ui::RoundButton> _joinButton;
-
-	std::optional<bool> _online;
-	Ui::Animations::Basic _checkingAnimation;
-	QRect _dotRect;
-};
-
-ServerRow::ServerRow(
-	QWidget *parent,
-	PolySrv::Server server,
-	Fn<void()> details,
-	Fn<void()> join)
-: RippleButton(parent, st::defaultRippleAnimation)
-, _server(std::move(server))
-, _details(std::move(details))
-, _join(std::move(join))
-, _logo(this)
-, _name(this, _server.name, st::introServerRowName)
-, _endpoint(
-	this,
-	tr::lng_polysrv_server_endpoint(
-		tr::now,
-		lt_host,
-		_server.primaryHost(),
-		lt_port,
-		QString::number(_server.primaryPort())),
-	st::introServerRowEndpoint)
-, _status(
-	this,
-	tr::lng_polysrv_server_checking(tr::now),
-	st::introServerRowStatus)
-, _latency(this, QString(), st::introServerRowLatency)
-, _joinButton(
-	this,
-	rpl::single(tr::lng_polysrv_server_join(tr::now)),
-	st::introServerRowJoinButton) {
-	const auto size = st::introServerRowAvatarSize;
-	_logo->resize(size, size);
-	_logo->setAttribute(Qt::WA_TransparentForMouseEvents);
-	_logo->paintRequest(
-	) | rpl::on_next([=] {
-		auto p = QPainter(_logo.data());
-		PolySrv::PaintServerLogo(p, size, _server);
-	}, _logo->lifetime());
-
-	_name->setAttribute(Qt::WA_TransparentForMouseEvents);
-	_endpoint->setAttribute(Qt::WA_TransparentForMouseEvents);
-	_status->setAttribute(Qt::WA_TransparentForMouseEvents);
-	_latency->setAttribute(Qt::WA_TransparentForMouseEvents);
-	_latency->hide();
-
-	setClickedCallback(_details);
-	_joinButton->setClickedCallback([=] {
-		_join();
-	});
-
-	_checkingAnimation.init([=](crl::time) {
-		if (_online.has_value()) {
-			return false;
-		}
-		update();
-		return true;
-	});
-	_checkingAnimation.start();
-
-	PolySrv::CheckServerOnline(_server, crl::guard(this, [=](
-			bool online,
-			int latencyMs) {
-		setStatus(online, latencyMs);
-	}));
-
-	resize(parent->width(), st::introServerRowHeight);
-	updateLayout();
-}
-
-void ServerRow::setStatus(bool online, int latencyMs) {
-	_online = online;
-	_checkingAnimation.stop();
-	_status->setText(online
-		? tr::lng_polysrv_server_online(tr::now)
-		: tr::lng_polysrv_server_offline(tr::now));
-	_status->setTextColorOverride(online
-		? st::windowActiveTextFg->c
-		: st::attentionButtonFg->c);
-	if (online && latencyMs >= 0) {
-		_latency->setText(tr::lng_polysrv_server_latency(
-			tr::now,
-			lt_latency,
-			QString::number(latencyMs)));
-		_latency->show();
-	} else {
-		_latency->setText(QString());
-		_latency->hide();
-	}
-	updateLayout();
-	update();
-}
-
-void ServerRow::updateLayout() {
-	const auto padding = st::introServerRowPadding;
-	const auto avatarSize = st::introServerRowAvatarSize;
-	const auto joinWidth = _joinButton->width();
-	const auto joinHeight = _joinButton->height();
-	const auto statusWidth = st::introServerRowStatusWidth;
-
-	const auto joinLeft = width() - padding.right() - joinWidth;
-	const auto joinTop = (height() - joinHeight) / 2;
-	_joinButton->moveToLeft(joinLeft, joinTop);
-
-	const auto statusRight = joinLeft - st::introServerRowJoinSkip;
-	const auto statusLeft = statusRight - statusWidth;
-
-	_status->resizeToWidth(statusWidth);
-	_latency->resizeToWidth(statusWidth);
-	const auto statusBlockHeight = _status->height()
-		+ (_latency->isHidden()
-			? 0
-			: (_latency->height() + st::introServerRowStatusSkip));
-	const auto statusTop = (height() - statusBlockHeight) / 2;
-	_status->moveToLeft(statusLeft, statusTop);
-	_latency->moveToLeft(
-		statusLeft,
-		statusTop + _status->height() + st::introServerRowStatusSkip);
-
-	const auto dotSize = st::introServerRowStatusDot;
-	const auto dotTop = statusTop + (_status->height() - dotSize) / 2;
-	_dotRect = QRect(
-		statusLeft - dotSize - st::introServerRowStatusDotSkip,
-		dotTop,
-		dotSize,
-		dotSize);
-
-	const auto infoLeft = padding.left()
-		+ avatarSize
-		+ st::introServerRowAvatarSkip;
-	const auto infoRight = statusLeft - st::introServerRowJoinSkip;
-	const auto infoWidth = std::max(infoRight - infoLeft, 1);
-
-	_name->resizeToWidth(infoWidth);
-	_endpoint->resizeToWidth(infoWidth);
-
-	const auto textBlockHeight = _name->height()
-		+ st::introServerRowStatusSkip
-		+ _endpoint->height();
-	const auto textTop = (height() - textBlockHeight) / 2;
-	_name->moveToLeft(infoLeft, textTop);
-	_endpoint->moveToLeft(
-		infoLeft,
-		textTop + _name->height() + st::introServerRowStatusSkip);
-
-	_logo->moveToLeft(padding.left(), (height() - avatarSize) / 2);
-}
-
-void ServerRow::paintEvent(QPaintEvent *e) {
-	auto p = Painter(this);
-	p.setClipRect(e->rect());
-	PainterHighQualityEnabler hq(p);
-
-	const auto radius = st::introServerRowRadius;
-	p.setPen(Qt::NoPen);
-	p.setBrush(isOver() ? st::windowBgOver : st::boxBg);
-	p.drawRoundedRect(rect(), radius, radius);
-
-	if (_dotRect.isValid()) {
-		p.setPen(Qt::NoPen);
-		if (!_online.has_value()) {
-			const auto phase = (crl::now() - _checkingAnimation.started()) % 1200;
-			const auto wave = 0.5 + 0.5 * std::sin(phase / 1200. * 6.283185307);
-			auto color = st::windowSubTextFg->c;
-			color.setAlpha(int(80 + 175 * wave));
-			p.setBrush(color);
-		} else {
-			p.setBrush(*_online
-				? st::windowActiveTextFg
-				: st::attentionButtonFg);
-		}
-		p.drawEllipse(_dotRect);
-	}
-
-	paintRipple(p, 0, 0);
-}
-
-void ServerRow::resizeEvent(QResizeEvent *e) {
-	RippleButton::resizeEvent(e);
-	updateLayout();
-}
-
-QImage ServerRow::prepareRippleMask() const {
-	return Ui::RippleAnimation::RoundRectMask(
-		size(),
-		st::introServerRowRadius);
-}
 
 constexpr auto kConnectPollMs = crl::time(250);
 constexpr auto kConnectTimeout = crl::time(20000);
@@ -523,7 +307,7 @@ void ServerSelectWidget::rebuildList() {
 	const auto spacing = st::introServerRowSpacing;
 	auto y = 0;
 	for (const auto &server : servers) {
-		const auto row = Ui::CreateChild<ServerRow>(
+		const auto row = Ui::CreateChild<PolySrv::ServerRow>(
 			_rowsContainer,
 			server,
 			[=] { showDetails(server); },
@@ -607,7 +391,7 @@ void ServerSelectWidget::updateRowsGeometry() {
 	const auto spacing = st::introServerRowSpacing;
 	auto y = 0;
 	for (const auto child : _rowsContainer->children()) {
-		const auto row = static_cast<ServerRow*>(child);
+		const auto row = static_cast<PolySrv::ServerRow*>(child);
 		row->setGeometry(0, y, width, rowHeight);
 		y += rowHeight + spacing;
 	}

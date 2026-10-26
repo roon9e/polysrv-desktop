@@ -6,6 +6,7 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "polysrv/polysrv_server_box.h"
+#include "polysrv/polysrv_server_row.h"
 
 #include "boxes/abstract_box.h"
 #include "core/application.h"
@@ -40,16 +41,6 @@ namespace {
 constexpr auto kDefaultPort = 443;
 constexpr auto kDefaultMainDcId = 2;
 constexpr auto kMaxMainDcId = 5;
-
-[[nodiscard]] QString ServerRowLabel(const Server &server) {
-	auto result = server.name;
-	if (result.isEmpty()) {
-		result = server.endpoint();
-	} else if (const auto endpoint = server.endpoint(); !endpoint.isEmpty()) {
-		result += u" \u00b7 "_q + endpoint;
-	}
-	return result;
-}
 
 [[nodiscard]] QString LogoPathFor(const Server &server) {
 	return PolySrv::LocalLogoPath(server.logoPath);
@@ -733,20 +724,29 @@ void ShowServerListBox() {
 	RefreshServerLogos();
 	Ui::show(Box([](not_null<Ui::GenericBox*> box) {
 		box->setTitle(tr::lng_polysrv_servers_title());
+		box->setWidth(st::boxWideWidth);
 
 		const auto fill = [=] {
 			box->verticalLayout()->clear();
 			for (const auto &server : Servers()) {
+				if (!server.valid()) {
+					continue;
+				}
 				const auto id = server.id;
-				const auto row = box->addRow(object_ptr<Ui::LinkButton>(
-					box,
-					ServerRowLabel(server),
-					st::boxLinkButton));
-				row->setClickedCallback([=] {
-					if (const auto found = FindServer(id)) {
-						ShowServerDetailsBox(*found, nullptr);
-					}
-				});
+				const auto row = box->addRow(
+					object_ptr<ServerRow>(
+						box,
+						server,
+						[=] {
+							if (const auto found = FindServer(id)) {
+								ShowServerDetailsBox(*found, nullptr);
+							}
+						},
+						nullptr,
+						false),
+					st::boxRowPadding
+						+ QMargins(0, st::introServerRowSpacing, 0, 0));
+				row->show();
 			}
 		};
 		fill();
