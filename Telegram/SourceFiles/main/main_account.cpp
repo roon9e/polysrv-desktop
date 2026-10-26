@@ -129,6 +129,10 @@ QString Account::serverScope() const {
 	return _serverScope;
 }
 
+QString Account::serverId() const {
+	return _serverId;
+}
+
 void Account::applyServer(
 		const QString &id,
 		const QString &host,
@@ -153,6 +157,7 @@ void Account::applyServer(
 	}
 	local().writeServerSelection(selection);
 	_serverScope = PolySrv::ServerScopeForHost(selection.host, selection.port);
+	_serverId = selection.id;
 	resetAuthorizationKeys();
 }
 
@@ -162,6 +167,7 @@ void Account::restoreServer(MTP::Config *config) {
 		// The official Telegram network, whose options stay open so that
 		// the configuration it sends can name the other data centers.
 		_serverScope.clear();
+		_serverId.clear();
 		if (config) {
 			// WHY: the copied options keep the hosts of a server chosen
 			// before, so without a rebuild the handshake talks to that
@@ -175,6 +181,7 @@ void Account::restoreServer(MTP::Config *config) {
 	_serverScope = PolySrv::ServerScopeForHost(
 		selection->host,
 		selection->port);
+	_serverId = selection->id;
 	const auto server = PolySrv::FindServer(selection->id);
 	if (!server || !config) {
 		return;

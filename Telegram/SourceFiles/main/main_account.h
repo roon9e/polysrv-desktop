@@ -53,6 +53,7 @@ public:
 	// The server this account belongs to. The scope is the host of the
 	// server, and is empty for the official Telegram network.
 	[[nodiscard]] QString serverScope() const;
+	[[nodiscard]] QString serverId() const;
 	void applyServer(const QString &id, const QString &host, int port);
 	void restoreServer(MTP::Config *config);
 	void createSession(
@@ -165,6 +166,7 @@ private:
 	Fn<void(QString)> _handleLoginCode = nullptr;
 
 	QString _serverScope;
+	QString _serverId;
 	UserId _sessionUserId = 0;
 	QByteArray _sessionUserSerialized;
 	int32 _sessionUserStreamVersion = 0;

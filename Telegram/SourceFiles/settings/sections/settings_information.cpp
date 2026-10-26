@@ -1146,8 +1146,11 @@ void AccountsList::rebuild() {
 				not_null<::Main::Account*>>>();
 			grouped.reserve(accounts.size());
 			for (const auto account : accounts) {
+				const auto found = PolySrv::FindServer(account->serverId());
 				grouped.emplace_back(
-					PolySrv::ServerForScope(account->serverScope()),
+					found
+						? *found
+						: PolySrv::ServerForScope(account->serverScope()),
 					account);
 			}
 			std::stable_sort(grouped.begin(), grouped.end(),

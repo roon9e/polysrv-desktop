@@ -243,6 +243,9 @@ bool QrWidget::onCustomServer() const {
 }
 
 QString QrWidget::serverName() const {
+	if (const auto server = PolySrv::FindServer(account().serverId())) {
+		return server->name;
+	}
 	return PolySrv::ServerForScope(account().serverScope()).name;
 }
 
