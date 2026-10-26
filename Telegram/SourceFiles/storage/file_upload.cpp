@@ -431,8 +431,8 @@ void Uploader::runTranscode(FullMsgId itemId) {
 	const auto job = file->animationJob;
 	const auto archiveWork = (file->archive != nullptr);
 	const auto archiveLimit = session().premium()
-		? kFileSizePremiumLimit
-		: kFileSizeLimit;
+		? FileSizePremiumLimit()
+		: FileSizeLimit();
 	const auto cancel = std::make_shared<std::atomic<bool>>(false);
 	entry.cancelPreparing = cancel;
 	crl::async([
