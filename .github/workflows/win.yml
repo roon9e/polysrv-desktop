@@ -355,35 +355,46 @@ jobs:
         run: |
           $ErrorActionPreference = 'Continue'
           $out = Join-Path $env:TBUILD "$env:REPO_NAME\out"
+          $root = 'D:'
+          if (-not (Test-Path 'D:\')) { $root = 'C:' }
+          $outReal = Join-Path $root "TBuild\$env:REPO_NAME\out"
           "OUT=$out"
-          "CMAKE=$((Get-Command cmake -ErrorAction SilentlyContinue).Source)"
-          & cmake --version | Select-Object -First 1
+          "OUTREAL=$outReal"
+          "TEMP=$env:TEMP exists=$(Test-Path $env:TEMP)"
+          "TMP=$env:TMP exists=$(Test-Path $env:TMP)"
+          "RUNNER_TEMP=$env:RUNNER_TEMP exists=$(Test-Path $env:RUNNER_TEMP)"
           $ninja = (Get-Command ninja.exe -ErrorAction SilentlyContinue).Source
-          if (-not $ninja) {
-            $ninja = (Get-ChildItem 'C:\Program Files*\Microsoft Visual Studio\*\*\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe' -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-          }
           "NINJA=$ninja"
-          & $ninja --version
           Push-Location $out
           & $ninja -t commands external_qt_static_plugins_kimageformats 2>&1 | Out-File -Encoding utf8 cmds.txt
           $line = Get-Content cmds.txt | Where-Object { $_ -match 'scanlineconverter\.cpp' -and $_ -match 'cl(\.exe)?' } | Select-Object -First 1
-          "CMDLEN=$($line.Length)"
-          "----- exact command -----"
-          $line
-          function Run-Variant($name, $cmd) {
-            "===== VARIANT $name ====="
-            Set-Content -Path variant.bat -Value $cmd -Encoding ascii
-            & cmd.exe /c variant.bat > vout.txt 2>&1
-            "exit=$LASTEXITCODE"
-            Get-Content vout.txt -ErrorAction SilentlyContinue | Where-Object { $_ -match 'error|fatal|C1083|C1060|warning C' } | Select-Object -First 8
-          }
-          Run-Variant 'asis' $line
-          Run-Variant 'noFS' ($line -replace '/FS','')
-          Run-Variant 'noFd' ($line -replace '/Fd[^ ]*','')
-          Run-Variant 'noZ7' ($line -replace '[-/]Z7','')
-          Run-Variant 'noWX' ($line -replace '[-/]WX','')
-          Run-Variant 'noFd_noFS' (($line -replace '/FS','') -replace '/Fd[^ ]*','')
           Pop-Location
+          "CMDLEN=$($line.Length)"
+          $src = ($line -split '\s+')[-1]
+          "SRC=$src"
+          $bat = Join-Path $env:RUNNER_TEMP 'variant.bat'
+          function Run-Variant($name, $cmd, $cwd) {
+            "===== VARIANT $name  cwd=$cwd ====="
+            Set-Content -Path $bat -Value $cmd -Encoding ascii
+            Push-Location $cwd
+            & cmd.exe /c $bat > (Join-Path $env:RUNNER_TEMP 'vout.txt') 2>&1
+            "exit=$LASTEXITCODE"
+            Get-Content (Join-Path $env:RUNNER_TEMP 'vout.txt') -ErrorAction SilentlyContinue | Where-Object { $_ -match 'fatal error|error C|error D|C1083|C1001' } | Select-Object -First 4
+            Pop-Location
+          }
+          Run-Variant 'asis_sym' $line $out
+          Run-Variant 'asis_realcwd' $line $outReal
+          Run-Variant 'shortfo' ($line -replace '/Fo[^ ]*','/FoD:\p.obj') $out
+          Run-Variant 'shortfo_realcwd' ($line -replace '/Fo[^ ]*','/FoD:\p.obj') $outReal
+          New-Item -ItemType Directory -Force -Path D:\sc | Out-Null
+          Copy-Item $src 'D:\sc\scanlineconverter.cpp' -Force
+          Copy-Item (Join-Path (Split-Path $src) 'scanlineconverter_p.h') 'D:\sc\scanlineconverter_p.h' -Force
+          Run-Variant 'copysrc' ($line -replace [regex]::Escape($src),'D:\sc\scanlineconverter.cpp') $out
+          Run-Variant 'noext' (($line -replace '-external:I\S+','') -replace '-external:W0','') $out
+          Run-Variant 'std17' ($line -replace '-std:c\+\+20','-std:c++17') $out
+          Run-Variant 'noMT' ($line -replace '-MT','') $out
+          Run-Variant 'nodefs' (($line -replace '-D\S+','') -replace '/D[A-Za-z0-9_]+','') $out
+          Run-Variant 'minimal' ('"' + (($line -split '"')[1]) + '" /nologo /TP /c ' + $src + ' /FoD:\p.obj /showIncludes') $out
 
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
