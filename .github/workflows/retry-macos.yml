@@ -2,7 +2,7 @@ name: Retry macOS.
 
 on:
   workflow_run:
-    workflows: ["MacOS.", "MacOS Packaged."]
+    workflows: ["MacOS.", "MacOS Packaged.", "Release."]
     types: [completed]
 
 permissions:
