@@ -44,7 +44,7 @@ on:
       - 'Telegram/Telegram.plist'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: Linux.-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:

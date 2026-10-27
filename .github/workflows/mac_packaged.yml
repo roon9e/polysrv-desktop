@@ -41,7 +41,7 @@ on:
       - 'Telegram/configure.bat'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: MacOS Packaged.-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
