@@ -155,9 +155,6 @@ namespace {
 
 [[nodiscard]] QString CurrentVersionText(bool withCommit) {
 	auto result = QString::fromLatin1(AppVersionStr);
-	// The PolySRV build number, so that a PolySRV release is told apart
-	// from the official Telegram release it is based on.
-	result += u".%1"_q.arg(PolySrvBuild);
 	if (Core::BuildIsCanary) {
 		result += Core::CanaryVersionSuffix();
 	} else if (cAlphaVersion()) {
