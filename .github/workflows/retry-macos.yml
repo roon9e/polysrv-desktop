@@ -35,9 +35,9 @@ jobs:
             exit 0
           fi
           jobs=$(gh api "repos/$GH_REPO/actions/runs/$RUN/jobs?per_page=100")
-          total=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | startswith("MacOS"))] | length')
-          empty=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | startswith("MacOS")) | select((.steps | length) == 0)] | length')
-          ran=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | startswith("MacOS")) | select((.steps | length) > 0) | select(.conclusion != "success")] | length')
+          total=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i"))] | length')
+          empty=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i")) | select((.steps | length) == 0)] | length')
+          ran=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i")) | select((.steps | length) > 0) | select(.conclusion != "success")] | length')
           echo "macOS jobs: $total, without a step: $empty, ran and failed: $ran"
           if [ "$total" -gt 0 ] && [ "$empty" -gt 0 ] && [ "$ran" -eq 0 ]; then
             echo "a macOS job never reached a runner, retrying the jobs that did not run"
