@@ -1,0 +1,45 @@
+name: Retry macOS.
+
+on:
+  workflow_run:
+    workflows: ["MacOS.", "MacOS Packaged."]
+    types: [completed]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: retry-macos
+  cancel-in-progress: false
+
+jobs:
+
+  retry:
+    name: Retry
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'success'
+    steps:
+      # A macOS run whose build jobs have no steps never reached a runner;
+      # anything else is a real result and is left alone.
+      - name: Re-run a macOS build that never reached a step.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          if [ "$ATTEMPT" -ge 3 ]; then
+            echo "attempt $ATTEMPT reached, giving up"
+            exit 0
+          fi
+          jobs=$(gh api "repos/$GH_REPO/actions/runs/$RUN/jobs?per_page=100")
+          total=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | startswith("MacOS"))] | length')
+          empty=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | startswith("MacOS")) | select((.steps | length) == 0)] | length')
+          echo "macOS jobs without a step: $empty of $total"
+          if [ "$total" -gt 0 ] && [ "$empty" -eq "$total" ]; then
+            echo "no runner reached the build, re-running"
+            gh run rerun "$RUN"
+          else
+            echo "the build itself ran, leaving the run alone"
+          fi
