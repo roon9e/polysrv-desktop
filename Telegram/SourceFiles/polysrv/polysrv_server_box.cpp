@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QFile>
 #include <QtCore/QPointer>
 #include <QtGui/QFontMetrics>
+#include <QtGui/QImage>
 #include <QtGui/QPainterPath>
 #include <QtGui/QPixmap>
 
@@ -253,53 +254,122 @@ int DescriptionSection::resizeGetHeight(int newWidth) {
 	return boxTop + boxHeight;
 }
 
-class HeaderRow final : public Ui::RpWidget {
+class HeaderRow final : public Ui::RippleButton {
 public:
-	HeaderRow(QWidget *parent, Server server);
+	HeaderRow(QWidget *parent, Server server, bool editable = false);
 
-	void setText(const QString &text);
+	void setName(const QString &text);
+	[[nodiscard]] QString logoPath() const;
+	void setLogoPath(const QString &path);
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;
+	void paintEvent(QPaintEvent *e) override;
+	[[nodiscard]] QImage prepareRippleMask() const override;
 
 private:
-	Server _server;
+	[[nodiscard]] Server LogoServer() const;
+
+	const bool _editable = false;
+	QString _nameText;
+	QString _logoPath;
 	object_ptr<Ui::RpWidget> _logo;
 	object_ptr<Ui::FlatLabel> _name;
+	object_ptr<Ui::FlatLabel> _hint;
 };
 
-HeaderRow::HeaderRow(QWidget *parent, Server server)
-: RpWidget(parent)
-, _server(std::move(server))
+HeaderRow::HeaderRow(QWidget *parent, Server server, bool editable)
+: RippleButton(parent, st::defaultRippleAnimation)
+, _editable(editable)
+, _nameText(std::move(server.name))
+, _logoPath(std::move(server.logoPath))
 , _logo(this)
-, _name(this, _server.name, st::introServerCardName) {
+, _name(this, _nameText, st::introServerCardName)
+, _hint(
+	this,
+	tr::lng_polysrv_server_logo_choose(tr::now),
+	st::introServerRowEndpoint) {
 	const auto logoSize = st::introServerCardLogo;
 	_logo->resize(logoSize, logoSize);
+	_logo->setAttribute(Qt::WA_TransparentForMouseEvents);
+	_name->setAttribute(Qt::WA_TransparentForMouseEvents);
+	_hint->setAttribute(Qt::WA_TransparentForMouseEvents);
 	_logo->paintRequest(
-	) | rpl::on_next([this, logoSize] {
+	) | rpl::on_next([=] {
 		auto p = QPainter(_logo.data());
-		PaintServerLogo(p, logoSize, _server);
+		PaintServerLogo(p, logoSize, LogoServer());
 	}, _logo->lifetime());
-	resize(parent->width(), logoSize);
+	if (_editable) {
+		_hint->show();
+		resize(parent->width(), st::introServerLogoRowHeight);
+	} else {
+		_hint->hide();
+		setAttribute(Qt::WA_TransparentForMouseEvents);
+		resize(parent->width(), logoSize);
+	}
 }
 
-void HeaderRow::setText(const QString &text) {
-	if (_server.name == text) {
+void HeaderRow::setName(const QString &text) {
+	if (_nameText == text) {
 		return;
 	}
-	_server.name = text;
+	_nameText = text;
 	_name->setText(text);
 	_logo->update();
 }
 
+QString HeaderRow::logoPath() const {
+	return _logoPath;
+}
+
+void HeaderRow::setLogoPath(const QString &path) {
+	if (_logoPath == path) {
+		return;
+	}
+	_logoPath = path;
+	_logo->update();
+}
+
+Server HeaderRow::LogoServer() const {
+	auto server = Server();
+	server.name = _nameText;
+	server.logoPath = _logoPath;
+	return server;
+}
+
 void HeaderRow::resizeEvent(QResizeEvent *e) {
-	RpWidget::resizeEvent(e);
+	RippleButton::resizeEvent(e);
 	const auto logoSize = st::introServerCardLogo;
-	_logo->moveToLeft(0, 0);
+	_logo->moveToLeft(0, (height() - logoSize) / 2);
 	const auto nameLeft = logoSize + st::introServerDetailsHeaderSkip;
 	const auto nameWidth = std::max(width() - nameLeft, 1);
 	_name->resizeToWidth(nameWidth);
-	_name->moveToLeft(nameLeft, (height() - _name->height()) / 2);
+	_hint->resizeToWidth(nameWidth);
+	const auto block = _name->height()
+		+ (_hint->isHidden() ? 0 : _hint->height());
+	const auto top = (height() - block) / 2;
+	_name->moveToLeft(nameLeft, top);
+	_hint->moveToLeft(nameLeft, top + _name->height());
+}
+
+void HeaderRow::paintEvent(QPaintEvent *e) {
+	if (!_editable) {
+		return;
+	}
+	auto p = Painter(this);
+	p.setClipRect(e->rect());
+	PainterHighQualityEnabler hq(p);
+	const auto radius = st::introServerRowRadius;
+	p.setPen(Qt::NoPen);
+	p.setBrush(isOver() ? st::windowBgOver : st::boxBg);
+	p.drawRoundedRect(rect(), radius, radius);
+	paintRipple(p, 0, 0);
+}
+
+QImage HeaderRow::prepareRippleMask() const {
+	return Ui::RippleAnimation::RoundRectMask(
+		size(),
+		st::introServerRowRadius);
 }
 
 class StatusBlock final : public Ui::RpWidget {
@@ -591,76 +661,6 @@ private:
 
 // The chosen logo as a thumbnail and the picker itself: the picture is the
 // button that adds or replaces the image, never a text field.
-class LogoRow final : public Ui::RippleButton {
-public:
-	LogoRow(QWidget *parent, QString path)
-	: RippleButton(parent, st::defaultRippleAnimation)
-	, _logo(this)
-	, _label(
-		this,
-		tr::lng_polysrv_server_logo_choose(tr::now),
-		st::introServerRowName)
-	, _path(std::move(path)) {
-		const auto size = st::introServerLogoThumb;
-		_logo->resize(size, size);
-		_logo->setAttribute(Qt::WA_TransparentForMouseEvents);
-		_label->setAttribute(Qt::WA_TransparentForMouseEvents);
-		_logo->paintRequest(
-		) | rpl::on_next([=] {
-			auto p = QPainter(_logo.data());
-			PaintServerLogo(p, size, LogoServer());
-		}, _logo->lifetime());
-		resize(parent->width(), st::introServerLogoRowHeight);
-	}
-
-	[[nodiscard]] QString path() const {
-		return _path;
-	}
-	void setPath(const QString &path) {
-		if (_path == path) {
-			return;
-		}
-		_path = path;
-		_logo->update();
-	}
-
-protected:
-	void resizeEvent(QResizeEvent *e) override {
-		RippleButton::resizeEvent(e);
-		const auto size = st::introServerLogoThumb;
-		_logo->moveToLeft(0, (height() - size) / 2);
-		const auto left = size + st::introServerLogoSkip;
-		_label->resizeToWidth(std::max(width() - left, 1));
-		_label->moveToLeft(left, (height() - _label->height()) / 2);
-	}
-	void paintEvent(QPaintEvent *e) override {
-		auto p = Painter(this);
-		p.setClipRect(e->rect());
-		PainterHighQualityEnabler hq(p);
-		const auto radius = st::introServerRowRadius;
-		p.setPen(Qt::NoPen);
-		p.setBrush(isOver() ? st::windowBgOver : st::boxBg);
-		p.drawRoundedRect(rect(), radius, radius);
-		paintRipple(p, 0, 0);
-	}
-	[[nodiscard]] QImage prepareRippleMask() const override {
-		return Ui::RippleAnimation::RoundRectMask(
-			size(),
-			st::introServerRowRadius);
-	}
-
-private:
-	[[nodiscard]] Server LogoServer() const {
-		auto server = Server();
-		server.logoPath = _path;
-		return server;
-	}
-
-	object_ptr<Ui::RpWidget> _logo;
-	object_ptr<Ui::FlatLabel> _label;
-	QString _path;
-};
-
 } // namespace
 
 void PaintServerLogo(QPainter &p, int size, const Server &server) {
@@ -773,21 +773,9 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 		box->setWidth(st::boxWideWidth);
 
 		const auto header = box->addRow(
-			object_ptr<HeaderRow>(box, initial),
+			object_ptr<HeaderRow>(box, initial, true),
 			st::boxRowPadding);
-
-		const auto name = AddField(
-			box,
-			tr::lng_polysrv_server_name(),
-			initial.name);
-		const auto description = AddField(
-			box,
-			tr::lng_polysrv_server_description_field(),
-			initial.description);
-		const auto logo = box->addRow(
-			object_ptr<LogoRow>(box, initial.logoPath),
-			st::boxRowPadding);
-		logo->setClickedCallback([=] {
+		header->setClickedCallback([=] {
 			const auto weak = QPointer<Ui::GenericBox>(box.get());
 			FileDialog::GetOpenPath(
 				box.get(),
@@ -797,9 +785,18 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 					if (!weak || result.paths.isEmpty()) {
 						return;
 					}
-					logo->setPath(result.paths.front());
+					header->setLogoPath(result.paths.front());
 				});
 		});
+
+		const auto name = AddField(
+			box,
+			tr::lng_polysrv_server_name(),
+			initial.name);
+		const auto description = AddField(
+			box,
+			tr::lng_polysrv_server_description_field(),
+			initial.description);
 		const auto address = box->addRow(
 			object_ptr<PairFieldsRow>(
 				box,
@@ -849,9 +846,9 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 				: initial.name;
 		};
 		const auto updatePreview = [=] {
-			header->setText(previewText());
+			header->setName(previewText());
 		};
-		header->setText(previewText());
+		header->setName(previewText());
 		name->changes() | rpl::on_next(updatePreview, box->lifetime());
 		host->changes() | rpl::on_next(updatePreview, box->lifetime());
 
@@ -882,7 +879,7 @@ void ShowServerEditBox(std::optional<Server> server, Fn<void()> changed) {
 				: mainDcText.toInt();
 			const auto serverDescription = description->getLastText().trimmed();
 			const auto serverKey = key->getLastText().trimmed();
-			const auto serverLogo = logo->path().trimmed();
+			const auto serverLogo = header->logoPath().trimmed();
 			const auto write = [=]() -> std::optional<Server> {
 				const auto written = editing
 					? UpdateCustomServer(
