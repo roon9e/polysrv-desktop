@@ -7,41 +7,7 @@ on:
     branches-ignore:
       - public-canary
       - private-canary
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'changelog.txt'
-      - 'LEGAL'
-      - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/linux.yml'
-      - 'Telegram/build/**'
-      - '!Telegram/build/docker/centos_env/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.bat'
-      - 'Telegram/Telegram.plist'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'changelog.txt'
-      - 'LEGAL'
-      - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/linux.yml'
-      - 'Telegram/build/**'
-      - '!Telegram/build/docker/centos_env/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.bat'
-      - 'Telegram/Telegram.plist'
 
 concurrency:
   group: Linux.-${{ github.ref }}
