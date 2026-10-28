@@ -48,14 +48,20 @@ jobs:
 
   macos:
     name: MacOS ${{ matrix.arch }}
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
+        os: [macos-15, macos-15-intel]
         defines:
           - ""
+        exclude:
+          - arch: arm64
+            os: macos-15-intel
+          - arch: x64
+            os: macos-15
 
     env:
       GIT: "https://github.com"
@@ -341,3 +347,7 @@ jobs:
         macOS-arm64-rnnoise-
         macOS-arm64-webrtc-
         macOS-arm64-tde2e-
+        macOS-x64-tdesktop-rust-
+        macOS-x64-rnnoise-
+        macOS-x64-webrtc-
+        macOS-x64-tde2e-
