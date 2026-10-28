@@ -97,7 +97,8 @@ jobs:
           brew install autoconf automake boost cmake libtool ninja pkg-config python $libs
           sudo mdutil -a -i off
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' $HOMEBREW_PREFIX/share/cmake/Modules/Compiler/GNU.cmake
+          GNU_CMAKE=$(python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$HOMEBREW_PREFIX/share/cmake/Modules/Compiler/GNU.cmake")
+          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' "$GNU_CMAKE"
 
           xcodebuild -version > CACHE_KEY.txt
           brew list --versions $libs >> CACHE_KEY.txt
