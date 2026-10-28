@@ -75,4 +75,4 @@ jobs:
             release/* \
             --verify-tag \
             --title "PolySRV $GITHUB_REF_NAME" \
-            --generate-notes
+            --notes "PolySRV Desktop for Windows (x64, arm64), Linux (x64) and macOS (Apple Silicon)."
