@@ -1,0 +1,51 @@
+name: Release nightly.
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+
+  retry:
+    name: Retry
+    runs-on: ubuntu-latest
+    steps:
+      # Late at night the macOS pool has capacity again, so a release whose
+      # assets are still incomplete gets one fresh full build then.
+      - name: Re-run the release if its assets are incomplete.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          assets=$(gh release view v7.3.3 --json assets --jq '.assets[].name' 2>/dev/null || true)
+          missing=0
+          for want in PolySRV-linux-x64 PolySRV-windows-x64.exe PolySRV-windows-arm64.exe PolySRV-macos-arm64.dmg PolySRV-macos-x64.dmg SHA256SUMS; do
+            if ! printf '%s\n' "$assets" | grep -qx "$want"; then
+              echo "missing $want"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 0 ]; then
+            echo "release complete"
+            exit 0
+          fi
+          for status in in_progress queued; do
+            for id in $(gh run list --repo "$GH_REPO" --workflow release.yml --status "$status" --json databaseId --jq '.[].databaseId'); do
+              echo "cancelling $status release run $id"
+              gh run cancel "$id" || true
+            done
+          done
+          sleep 20
+          rid=$(gh run list --repo "$GH_REPO" --workflow release.yml --status completed --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$rid" ] || [ "$rid" = "null" ]; then
+            echo "no completed release run to retry"
+            exit 0
+          fi
+          echo "re-running release run $rid"
+          gh run rerun "$rid"

@@ -5,7 +5,10 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "core/application.h"
+#include "polysrv/polysrv_links.h"
+#include "polysrv/polysrv_servers.h"
 
 #include "data/data_abstract_structure.h"
 #include "data/data_channel.h"
@@ -82,6 +85,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/cached_round_corners.h"
 #include "ui/power_saving.h"
 #include "ui/screen_reader_mode.h"
+#include "ui/toast/toast.h"
 #include "storage/storage_domain.h"
 #include "storage/storage_databases.h"
 #include "storage/storage_folder_archive.h"
@@ -1241,7 +1245,9 @@ void Application::checkStartUrls() {
 		auto left = ranges::views::all(
 			urls
 		) | ranges::views::filter([&](const QUrl &url) {
-			if (url.scheme() == u"tonsite"_q) {
+			if (url.scheme() == u"srv"_q) {
+				return !openServerLink(url.toString(), {});
+			} else if (url.scheme() == u"tonsite"_q) {
 				iv().showTonSite(url.toString(), {});
 				return false;
 			} else if (url.scheme() == u"ton"_q) {
@@ -1305,16 +1311,37 @@ void Application::registerWindowActivation(not_null<QWidget*> window) {
 
 bool Application::openLocalUrl(const QString &url, QVariant context) {
 	const auto urlTrimmed = url.trimmed();
+	if (!passcodeLocked()
+		&& urlTrimmed.startsWith(u"srv://"_q, Qt::CaseInsensitive)) {
+		return openServerLink(urlTrimmed, context);
+	}
+	return openTelegramUrl(urlTrimmed, context, false);
+}
+
+bool Application::openTelegramUrl(
+		const QString &url,
+		QVariant context,
+		bool serverRouted) {
 	const auto protocol = u"tg://"_q;
-	if (urlTrimmed.startsWith(protocol, Qt::CaseInsensitive)
+	if (url.startsWith(protocol, Qt::CaseInsensitive)
 		&& !passcodeLocked()) {
-		const auto command = urlTrimmed.mid(protocol.size());
+		const auto command = url.mid(protocol.size());
 		const auto my = context.value<ClickHandlerContext>();
 		const auto controller = my.sessionWindow.get()
 			? my.sessionWindow.get()
 			: _lastActivePrimaryWindow
 			? _lastActivePrimaryWindow->sessionController()
 			: nullptr;
+		if (controller && !serverRouted) {
+			const auto &account = controller->session().account();
+			if (!account.serverScope().isEmpty()) {
+				// A tg link belongs to the official Telegram network,
+				// so it cannot be routed on another server.
+				Ui::show(Ui::MakeInformBox(
+					tr::lng_polysrv_tg_link_needs_telegram()));
+				return true;
+			}
+		}
 		if (TryRouterForLocalUrl(controller, command)) {
 			return true;
 		}
@@ -1322,12 +1349,74 @@ bool Application::openLocalUrl(const QString &url, QVariant context) {
 	return openCustomUrl("tg://", LocalUrlHandlers(), url, context);
 }
 
+bool Application::openServerLink(
+		const QString &url,
+		QVariant context) {
+	const auto link = PolySrv::ParseLink(url);
+	switch (link.type) {
+	case PolySrv::Link::Type::AddServer: {
+		if (link.host.isEmpty() || link.port <= 0) {
+			return false;
+		}
+		// The key is never taken from the link: a key in a link is a
+		// man in the middle vector, because the key that answers for a
+		// host and a port is the only thing that is ever trusted.
+		if (!PolySrv::AddCustomServer(link.host, link.host, link.port)) {
+			return false;
+		}
+		// WHY: a link only adds the server. Rebinding the accounts that
+		// are signed in would log them out, and the added server has no
+		// key yet, so it cannot accept a sign-in either.
+		Ui::Toast::Show(tr::lng_polysrv_server_added(
+			tr::now,
+			lt_name,
+			link.host));
+		return true;
+	}
+	case PolySrv::Link::Type::Command: {
+		const auto my = context.value<ClickHandlerContext>();
+		const auto controller = my.sessionWindow.get()
+			? my.sessionWindow.get()
+			: _lastActivePrimaryWindow
+			? _lastActivePrimaryWindow->sessionController()
+			: nullptr;
+		// A command link works on any server, so it is not held to the
+		// rule that a tg link needs a Telegram account.
+		return TryRouterForLocalUrl(controller, link.command);
+	}
+	case PolySrv::Link::Type::ServerHost: {
+		for (const auto &account : _domain->orderedAccounts()) {
+			if (!PolySrv::ServerScopeMatchesHost(
+					account->serverScope(),
+					link.serverHost)) {
+				continue;
+			}
+			if (account->sessionExists()
+			&& account.get() != &_domain->active()) {
+				// Switching the account inside the click handler can use
+				// after free the window that started it, so the switch is
+				// deferred and the link is opened afterwards.
+				const auto rest = link.rest;
+				InvokeQueued(this, [=] {
+					_domain->maybeActivate(account);
+					openTelegramUrl(u"tg://"_q + rest, context, true);
+				});
+				return true;
+			}
+		}
+		return openTelegramUrl(u"tg://"_q + link.rest, context, false);
+	}
+	default:
+		return false;
+	}
+}
+
 bool Application::openInternalUrl(const QString &url, QVariant context) {
 	return openCustomUrl("internal:", InternalUrlHandlers(), url, context);
 }
 
 QString Application::changelogLink() const {
-	return u"https://telegramdesktop.github.io/tdesktop/changelog/"_q;
+	return Branding::Homepage.utf16() + u"/changelog/"_q;
 }
 
 bool Application::openCustomUrl(
@@ -2107,8 +2196,8 @@ void Application::RegisterUrlScheme() {
 		.executable = Platform::ExecutablePathForShortcuts(),
 		.arguments = arguments,
 		.protocol = u"tg"_q,
-		.protocolName = u"Telegram Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.protocolName = Branding::AppName.utf16() + u" Link"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),
@@ -2119,7 +2208,7 @@ void Application::RegisterUrlScheme() {
 		.arguments = arguments,
 		.protocol = u"tonsite"_q,
 		.protocolName = u"TonSite Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),
@@ -2130,7 +2219,18 @@ void Application::RegisterUrlScheme() {
 		.arguments = arguments,
 		.protocol = u"ton"_q,
 		.protocolName = u"Ton Link"_q,
-		.shortAppName = u"tdesktop"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
+		.longAppName = QCoreApplication::applicationName(),
+		.displayAppName = AppName.utf16(),
+		.displayAppDescription = AppName.utf16(),
+	});
+
+	base::Platform::RegisterUrlScheme(base::Platform::UrlSchemeDescriptor{
+		.executable = Platform::ExecutablePathForShortcuts(),
+		.arguments = arguments,
+		.protocol = u"srv"_q,
+		.protocolName = Branding::AppName.utf16() + u" Link"_q,
+		.shortAppName = Branding::ShortAppName.utf16(),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),

@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "apiwrap.h"
 #include "base/call_delayed.h"
+#include "core/branding.h"
 #include "core/application.h"
 #include "data/data_channel.h"
 #include "data/data_community.h"
@@ -964,7 +965,7 @@ QString SavedWindows::shellTitle(
 		? st::wrap_rtl(session->user()->name())
 		: QString();
 	return name.isEmpty()
-		? (user.isEmpty() ? u"Telegram"_q : user)
+		? (user.isEmpty() ? Branding::ShortAppName.utf16() : user)
 		: user.isEmpty()
 		? name
 		: (name + u" @ "_q + user);

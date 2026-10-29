@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "core/file_utilities.h"
 
 #include "core/click_handler_types.h"
@@ -169,7 +170,7 @@ void ShowInFolder(const QString &filepath) {
 
 QString DefaultDownloadPathFolder(not_null<Main::Session*> session) {
 #if OS_MAC_STORE
-	return u"Telegram Lite"_q;
+	return Branding::OutputName.utf16() + u" Lite"_q;
 #else // OS_MAC_STORE
 	return session->supportMode() ? u"Tsupport Desktop"_q : AppName.utf16();
 #endif // OS_MAC_STORE

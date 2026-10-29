@@ -126,7 +126,8 @@ DcOptions::DcOptions(const DcOptions &other)
 , _cdnDcIds(other._cdnDcIds)
 , _publicKeys(other._publicKeys)
 , _cdnPublicKeys(other._cdnPublicKeys)
-, _immutable(other._immutable) {
+, _immutable(other._immutable)
+, _optionsLocked(other._optionsLocked) {
 }
 
 DcOptions::~DcOptions() = default;
@@ -153,6 +154,39 @@ void DcOptions::readBuiltInPublicKeys() {
 			LOG((key));
 		}
 	}
+}
+
+void DcOptions::setBuiltInPublicKeys() {
+	WriteLocker lock(this);
+	_publicKeys.clear();
+	readBuiltInPublicKeys();
+}
+
+void DcOptions::setPublicKeysFromPem(const QString &pem) {
+	WriteLocker lock(this);
+	const auto trimmed = pem.trimmed();
+	if (trimmed.isEmpty()) {
+		return;
+	}
+	const auto utf8 = trimmed.toUtf8();
+	auto parsed = RSAPublicKey(bytes::make_span(utf8));
+	if (!parsed.valid()) {
+		// The keys that are trusted stay, so that a key that cannot be
+		// read does not leave the account without a way to connect.
+		LOG(("MTP Error: could not read the public RSA key of the server."));
+		return;
+	}
+	_publicKeys.clear();
+	_publicKeys.emplace(parsed.fingerprint(), std::move(parsed));
+}
+
+void DcOptions::setOptionsLocked(bool locked) {
+	WriteLocker lock(this);
+	_optionsLocked = locked;
+}
+
+bool DcOptions::optionsLocked() const {
+	return _optionsLocked;
 }
 
 Environment DcOptions::environment() const {
@@ -198,7 +232,7 @@ void DcOptions::constructFromBuiltIn() {
 void DcOptions::processFromList(
 		const QVector<MTPDcOption> &options,
 		bool overwrite) {
-	if (options.empty() || _immutable) {
+	if (options.empty() || _immutable || _optionsLocked) {
 		return;
 	}
 
@@ -248,7 +282,7 @@ void DcOptions::addFromList(const MTPVector<MTPDcOption> &options) {
 }
 
 void DcOptions::addFromOther(DcOptions &&options) {
-	if (this == &options || _immutable) {
+	if (this == &options || _immutable || _optionsLocked) {
 		return;
 	}
 
@@ -300,6 +334,9 @@ void DcOptions::constructAddOne(
 		int port,
 		const bytes::vector &secret) {
 	WriteLocker lock(this);
+	if (_optionsLocked) {
+		return;
+	}
 	applyOneGuarded(BareDcId(id), flags, ip, port, secret);
 }
 

@@ -20,10 +20,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/text/text_utilities.h"
+#include "ui/text/text_entity.h"
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
 #include "main/main_app_config.h"
 #include "main/main_account.h"
+#include "polysrv/polysrv_servers.h"
 #include "ui/boxes/confirm_box.h"
 #include "core/application.h"
 #include "core/core_cloud_password.h"
@@ -32,6 +34,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "qr/qr_generate.h"
 #include "platform/platform_webauthn.h"
 #include "styles/style_intro.h"
+
+#include <array>
 
 namespace Intro {
 namespace details {
@@ -234,20 +238,46 @@ QrWidget::QrWidget(
 	}, lifetime());
 }
 
+bool QrWidget::onCustomServer() const {
+	return !account().serverScope().isEmpty();
+}
+
+QString QrWidget::serverName() const {
+	if (const auto server = PolySrv::FindServer(account().serverId())) {
+		return server->name;
+	}
+	return PolySrv::ServerForScope(account().serverScope()).name;
+}
+
+rpl::producer<QString> QrWidget::titleText() const {
+	return onCustomServer()
+		? tr::lng_intro_qr_title_server(
+			lt_server,
+			rpl::single(serverName()))
+		: tr::lng_intro_qr_title();
+}
+
 QString QrWidget::accessibilityName() {
-	return tr::lng_intro_qr_title(tr::now);
+	return onCustomServer()
+		? tr::lng_intro_qr_title_server(tr::now, lt_server, serverName())
+		: tr::lng_intro_qr_title(tr::now);
 }
 
 QString QrWidget::accessibilityDescription() {
-	const auto phrases = {
-		tr::lng_intro_qr_step1,
-		tr::lng_intro_qr_step2,
-		tr::lng_intro_qr_step3,
+	const auto phrases = std::array<QString, 3>{
+		onCustomServer()
+			? tr::lng_intro_qr_step1_server(
+				tr::now,
+				lt_server,
+				serverName())
+			: tr::lng_intro_qr_step1(tr::now),
+		tr::lng_intro_qr_step2(tr::now),
+		tr::lng_intro_qr_step3(tr::now),
 	};
 	auto result = QString();
 	auto index = 0;
 	for (const auto &phrase : phrases) {
-		result.append(QString::number(++index)).append(". ").append(phrase(tr::now)).append('\n');
+		result.append(QString::number(++index)).append(". ").append(phrase).append('\n');
 	}
 	return result;
 }
@@ -305,7 +335,7 @@ void QrWidget::setupControls() {
 
 	const auto title = Ui::CreateChild<Ui::FlatLabel>(
 		this,
-		tr::lng_intro_qr_title(),
+		titleText(),
 		st::introQrTitle);
 	rpl::combine(
 		sizeValue(),
@@ -320,17 +350,24 @@ void QrWidget::setupControls() {
 	}, title->lifetime());
 
 	const auto steps = Ui::CreateChild<Ui::VerticalLayout>(this);
-	const auto texts = {
-		tr::lng_intro_qr_step1,
-		tr::lng_intro_qr_step2,
-		tr::lng_intro_qr_step3,
+	const auto custom = onCustomServer();
+	const auto name = serverName();
+	auto texts = std::array<rpl::producer<TextWithEntities>, 3>{
+		custom
+			? tr::lng_intro_qr_step1_server(
+				lt_server,
+				rpl::single(tr::marked(name)),
+				tr::rich)
+			: tr::lng_intro_qr_step1(tr::rich),
+		tr::lng_intro_qr_step2(tr::rich),
+		tr::lng_intro_qr_step3(tr::rich),
 	};
 	auto index = 0;
-	for (const auto &text : texts) {
+	for (auto &text : texts) {
 		const auto label = steps->add(
 			object_ptr<Ui::FlatLabel>(
 				steps,
-				text(tr::rich),
+				std::move(text),
 				st::introQrStep),
 			st::introQrStepMargins);
 		const auto number = Ui::CreateChild<Ui::FlatLabel>(

@@ -97,6 +97,7 @@ enum class EnterPoint : uchar {
 	Start,
 	Phone,
 	Qr,
+	ServerSelect,
 };
 
 class Widget

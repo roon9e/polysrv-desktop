@@ -116,6 +116,13 @@ void ConfigLoader::enumerate() {
 }
 
 void ConfigLoader::refreshSpecialLoader() {
+	// A locked account talks to one fixed server, so discovering
+	// Telegram's alternative data centers makes no sense for it.
+	if (_instance->dcOptions().optionsLocked()) {
+		_specialLoader.reset();
+		return;
+	}
+
 	if (_proxyEnabled || _instance->isKeysDestroyer()) {
 		_specialLoader.reset();
 		return;

@@ -7,14 +7,14 @@
    xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
    IgnorableNamespaces="uap uap2 uap3 desktop rescap">
-  <Identity Name="TelegramMessengerLLP.TelegramDesktop"
+  <Identity Name="PolySRV.PolySRVDesktop"
     ProcessorArchitecture="ARCHITECTURE"
     Publisher="CN=536BC709-8EE1-4478-AF22-F0F0F26FF64A"
     Version="7.3.3.0" />
   <Properties>
-    <DisplayName>Telegram Desktop</DisplayName>
-    <PublisherDisplayName>Telegram Messenger LLP</PublisherDisplayName>
-    <Description>Telegram Desktop official messenger</Description>
+    <DisplayName>PolySRV Desktop</DisplayName>
+    <PublisherDisplayName>PolySRV</PublisherDisplayName>
+    <Description>PolySRV Desktop messenger</Description>
     <Logo>Assets\logo\logo.png</Logo>
   </Properties>
   <Resources>
@@ -27,10 +27,10 @@
     <rescap:Capability Name="runFullTrust"/>
   </Capabilities>
   <Applications>
-    <Application Id="Telegram.TelegramDesktop.Store" Executable="Telegram.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="Telegram.TelegramDesktop.Store" Executable="PolySRV.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-       BackgroundColor="#1e94d0"
-       DisplayName="Telegram Desktop"
+       BackgroundColor="#5a4fcf"
+       DisplayName="PolySRV Desktop"
        Square150x150Logo="Assets\logo150\logo150.png"
        Square44x44Logo="Assets\logo44\logo44.png"
        Description="Telegram Desktop official messenger" />
@@ -49,10 +49,13 @@
           Executable="StartupTask.exe"
           EntryPoint="Windows.FullTrustApplication">
           <desktop:StartupTask
-            TaskId="TelegramStartupTask"
+            TaskId="PolySRVStartupTask"
             Enabled="false"
             DisplayName="Telegram Desktop" />
         </desktop:Extension>
+        <uap3:Extension Category="windows.protocol">
+          <uap3:Protocol Name="srv" Parameters="-- &quot;%1&quot;" />
+        </uap3:Extension>
       </Extensions>
     </Application>
   </Applications>

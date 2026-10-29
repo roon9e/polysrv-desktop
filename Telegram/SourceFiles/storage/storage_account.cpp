@@ -282,6 +282,10 @@ base::flat_set<QString> Account::collectGoodNames() const {
 		"map1",
 		"maps",
 		"configs",
+		// The per-account server binding, so the async legacy cleanup does
+		// not delete it and the account keeps the server it joined.
+		"polysrv_server",
+		"polysrv_servers",
 	};
 	const auto push = [&](FileKey key) {
 		if (!key) {
@@ -1062,6 +1066,36 @@ void Account::updateDownloads(
 
 QByteArray Account::downloadsSerialized() const {
 	return _downloadsSerialized;
+}
+
+void Account::writeServerSelection(const ServerSelection &selection) {
+	const auto size = sizeof(qint32)
+		+ Serialize::stringSize(selection.id)
+		+ Serialize::stringSize(selection.host);
+	EncryptedDescriptor data(size);
+	data.stream
+		<< qint32(selection.port)
+		<< selection.id
+		<< selection.host;
+	FileWriteDescriptor file(u"polysrv_server"_q, _basePath, true);
+	file.writeEncrypted(data, _localKey);
+}
+
+std::optional<ServerSelection> Account::readServerSelection() {
+	FileReadDescriptor file;
+	if (!ReadEncryptedFile(
+			file,
+			u"polysrv_server"_q,
+			_basePath,
+			_localKey)) {
+		return std::nullopt;
+	}
+	auto result = ServerSelection();
+	file.stream >> result.port >> result.id >> result.host;
+	if (result.empty()) {
+		return std::nullopt;
+	}
+	return result;
 }
 
 void Account::writeSessionSettings() {

@@ -1,54 +1,23 @@
 name: Linux.
 
 on:
+  workflow_call:
   push:
     # Pushes to the canary branches run only canary.yml, see there.
     branches-ignore:
       - public-canary
       - private-canary
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'changelog.txt'
-      - 'LEGAL'
-      - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/linux.yml'
-      - 'snap/**'
-      - 'Telegram/build/**'
-      - '!Telegram/build/docker/centos_env/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.bat'
-      - 'Telegram/Telegram.plist'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'changelog.txt'
-      - 'LEGAL'
-      - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/linux.yml'
-      - 'snap/**'
-      - 'Telegram/build/**'
-      - '!Telegram/build/docker/centos_env/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.bat'
-      - 'Telegram/Telegram.plist'
+
+concurrency:
+  group: Linux.-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
 
   linux:
     name: Rocky Linux 8
-    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-ubuntu-latest-16' || 'ubuntu-latest' }}
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -82,15 +51,15 @@ jobs:
       - name: Free up some disk space.
         uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6
         with:
-          tool-cache: true
+          preinstalled-runtimes: true
 
       - name: Set up Docker Buildx.
         id: setup-buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Libraries cache.
+      - name: Restore the Libraries cache.
         id: cache-libs
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ runner.temp }}/.buildx-cache
@@ -107,6 +76,7 @@ jobs:
           skip-extraction: ${{ steps.cache-libs.outputs.cache-hit }}
 
       - name: Libraries.
+        id: build-libs
         uses: docker/build-push-action@v7
         with:
           context: Telegram/build/docker/centos_env
@@ -126,19 +96,20 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.OS }}-tdesktop-${{ matrix.defines || 'null' }}-${{ github.run_id }}
+          key: ${{ runner.OS }}-tdesktop-${{ matrix.defines || 'null' }}-v1
           restore-keys: ${{ runner.OS }}-tdesktop-${{ matrix.defines || 'null' }}-
 
       - name: Telegram Desktop build.
+        id: build
         if: env.ONLY_CACHE == 'false'
         run: |
           DEFINE=""
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram ${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=PolySRV linux ${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=PolySRV linux" >> $GITHUB_ENV
           fi
 
           ccache -z
@@ -147,13 +118,11 @@ jobs:
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
           -v ${{ env.CCACHE_DIR }}:/var/cache/ccache \
-          -e CONFIG=Debug \
+          -e CONFIG=Release \
           -e CCACHE_SLOPPINESS=pch_defines,time_macros \
           $IMAGE_TAG \
           env -u CCACHE_DISABLE /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Debug \
-          -D CMAKE_C_FLAGS_DEBUG="-O0 -fpch-preprocess" \
-          -D CMAKE_CXX_FLAGS_DEBUG="-O0 -fpch-preprocess" \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -162,7 +131,10 @@ jobs:
 
       - name: Count ccache misses.
         id: ccache-stats
-        if: env.ONLY_CACHE == 'false'
+        if: >-
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
         run: |
           MISSES=$(ccache --print-stats | sed -n 's/^cache_miss\t//p' | head -1)
           case "$MISSES" in (*[!0-9]*|'') MISSES=0;; esac
@@ -171,25 +143,28 @@ jobs:
 
       - name: Trim Telegram Desktop cache.
         if: >
-          env.ONLY_CACHE == 'false'
-            && github.ref_name == github.event.repository.default_branch
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
-        run: ccache --evict-older-than 1d
+        run: ccache --evict-older-than 7d
 
       - name: Save Telegram Desktop cache.
         if: >
-          env.ONLY_CACHE == 'false'
-            && github.ref_name == github.event.repository.default_branch
+          always()
+            && env.ONLY_CACHE == 'false'
+            && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
             && fromJSON(steps.ccache-stats.outputs.misses) > 300
+            && !startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.cache-tdesktop.outputs.cache-primary-key }}
+          key: ${{ runner.OS }}-tdesktop-${{ matrix.defines || 'null' }}-v1
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="out/Debug/Telegram"
+          filePath="out/Release/PolySRV"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -203,13 +178,37 @@ jobs:
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd out/Debug
+          cd out/Release
           mkdir artifact
-          mv {Telegram,Updater} artifact/
+          mv {PolySRV,Updater} artifact/
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: out/Debug/artifact/
-          retention-days: 1
+          path: out/Release/artifact/
+          retention-days: 7
+
+      - name: Save the Libraries cache.
+        if: >
+          always()
+            && steps.cache-libs.outputs.cache-hit != 'true'
+            && steps.build-libs.outcome == 'success'
+            && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ runner.temp }}/.buildx-cache
+            ${{ runner.temp }}/.mount-cache
+          key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+
+  prune:
+    needs: [linux]
+    if: always() && github.ref == 'refs/heads/dev'
+    permissions:
+      actions: write
+    uses: ./.github/workflows/prune-caches.yml
+    with:
+      prefixes: |
+        Linux-libs-
+        Linux-tdesktop-

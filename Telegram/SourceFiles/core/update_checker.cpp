@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "core/update_checker.h"
 
 #include "platform/platform_specific.h"
@@ -2103,7 +2104,7 @@ bool checkReadyUpdate() {
 	QFileInfo updater(cWorkingDir() + u"tupdates/temp/Updater.exe"_q);
 #elif defined Q_OS_MAC // Q_OS_WIN
 	QString curUpdater = (cExeDir() + cExeName() + u"/Contents/Frameworks/Updater"_q);
-	QFileInfo updater(cWorkingDir() + u"tupdates/temp/Telegram.app/Contents/Frameworks/Updater"_q);
+	QFileInfo updater(cWorkingDir() + u"tupdates/temp/%1.app/Contents/Frameworks/Updater"_q.arg(Branding::OutputName.utf16()));
 #else // Q_OS_MAC
 	QString curUpdater = (cExeDir() + u"Updater"_q);
 	QFileInfo updater(cWorkingDir() + u"tupdates/temp/Updater"_q);
@@ -2176,18 +2177,13 @@ bool checkReadyUpdate() {
 
 void UpdateApplication() {
 	if (UpdaterDisabled()) {
-		const auto url = [&] {
+		const auto url = [&]() -> QString {
 #ifdef OS_WIN_STORE
-			return "https://www.microsoft.com/en-us/store/p/telegram-desktop/9nztwsqntd0s";
+			return u"https://www.microsoft.com/en-us/store/p/telegram-desktop/9nztwsqntd0s"_q;
 #elif defined OS_MAC_STORE // OS_WIN_STORE
-			return "https://itunes.apple.com/ae/app/telegram-desktop/id946399090";
+			return u"https://itunes.apple.com/ae/app/telegram-desktop/id946399090"_q;
 #else // OS_WIN_STORE || OS_MAC_STORE
-			if (KSandbox::isFlatpak()) {
-				return "https://flathub.org/apps/details/org.telegram.desktop";
-			} else if (KSandbox::isSnap()) {
-				return "https://snapcraft.io/telegram-desktop";
-			}
-			return "https://desktop.telegram.org";
+			return Branding::Homepage.utf16();
 #endif // OS_WIN_STORE || OS_MAC_STORE
 		}();
 		UrlClickHandler::Open(url);

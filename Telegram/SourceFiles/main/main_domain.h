@@ -36,8 +36,10 @@ public:
 		std::unique_ptr<Account> account;
 	};
 
-	static constexpr auto kMaxAccounts = 3;
-	static constexpr auto kPremiumMaxAccounts = 6;
+	// A multi-server client signs in to many servers, so the number of
+	// accounts is not limited by the official network's rules.
+	static constexpr auto kMaxAccounts = 20;
+	static constexpr auto kPremiumMaxAccounts = 50;
 
 	explicit Domain(const QString &dataName);
 	~Domain();

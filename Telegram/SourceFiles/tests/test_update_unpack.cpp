@@ -156,7 +156,7 @@ void ReplaceWord(QByteArray &data, qsizetype offset, quint32 value) {
 void TestFiles(const QString &parent, const QString &sentinel) {
 	Case("valid multiple files, empty file, nested paths and executable modes");
 	const auto entries = std::vector<Entry>{
-		{ QString::fromLatin1("Telegram"), "main program", true },
+		{ QString::fromLatin1("PolySRV"), "main program", true },
 		{ QString::fromLatin1("Updater"), "helper program", true },
 		{ QString::fromLatin1("resources/a file"), QByteArray("a\0b", 3) },
 		{ QString::fromLatin1("resources/empty"), QByteArray() },

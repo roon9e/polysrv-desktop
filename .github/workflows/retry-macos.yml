@@ -1,0 +1,63 @@
+name: Retry macOS.
+
+on:
+  workflow_run:
+    workflows: ["MacOS.", "MacOS Packaged.", "Release."]
+    types: [completed]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: retry-macos
+  cancel-in-progress: false
+
+jobs:
+
+  retry:
+    name: Retry
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'success'
+    steps:
+      # A macOS job that never reached a runner leaves the run failed; the
+      # jobs that did not run are then retried. Anything that ran and still
+      # failed is a real result and is left alone.
+      - name: Re-run a macOS build that never reached a step.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ github.event.workflow_run.id }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          max=8
+          if [ "$ATTEMPT" -ge "$max" ]; then
+            echo "attempt $ATTEMPT of $max reached, giving up"
+            exit 0
+          fi
+          jobs=$(gh api "repos/$GH_REPO/actions/runs/$RUN/jobs?per_page=100")
+          total=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i"))] | length')
+          empty=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i")) | select((.steps | length) == 0)] | length')
+          ran=$(printf '%s' "$jobs" | jq '[.jobs[] | select(.name | test("macos"; "i")) | select((.steps | length) > 0) | select(.conclusion != "success")] | length')
+          echo "macOS jobs: $total, without a step: $empty, ran and failed: $ran"
+          if [ "$total" -eq 0 ] || [ "$empty" -eq 0 ] || [ "$ran" -gt 0 ]; then
+            echo "the run is a real result, leaving it alone"
+            exit 0
+          fi
+          delay=$(( 15 + 15 * ATTEMPT ))
+          if [ "$delay" -gt 90 ]; then delay=90; fi
+          echo "waiting ${delay} minutes before re-running (attempt $ATTEMPT of $max)"
+          sleep $(( delay * 60 ))
+          current=$(gh api "repos/$GH_REPO/actions/runs/$RUN" --jq '.run_attempt')
+          if [ "$current" -gt "$ATTEMPT" ]; then
+            echo "the run already moved on, leaving it alone"
+            exit 0
+          fi
+          if [ "$WORKFLOW" = "Release." ]; then
+            echo "re-running the whole release so it publishes complete"
+            gh run rerun "$RUN"
+          else
+            echo "re-running the jobs that did not run"
+            gh run rerun "$RUN" --failed
+          fi

@@ -1,0 +1,40 @@
+name: Branding.
+
+on:
+  push:
+    # Pushes to the canary branches run only canary.yml, see there.
+    branches-ignore:
+      - public-canary
+      - private-canary
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/branding.yml'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/branding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+
+  branding:
+    name: Check the branding
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone.
+        uses: actions/checkout@v7
+
+      - name: Check that the branding is applied.
+        run: python3 Telegram/build/apply_branding.py --check

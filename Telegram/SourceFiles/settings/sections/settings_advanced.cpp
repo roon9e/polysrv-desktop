@@ -38,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/facade.h"
 #include "mtproto/mtp_instance.h"
 #include "platform/platform_specific.h"
+#include "polysrv/polysrv_server_box.h"
 #include "settings/settings_builder.h"
 #include "settings/sections/settings_local_storage.h"
 #include "settings/sections/settings_main.h"
@@ -135,6 +136,16 @@ void BuildDataStorageSection(SectionBuilder &builder) {
 				ProxiesBoxController::CreateOwningBox(account));
 		},
 		.keywords = { u"connection"_q, u"proxy"_q, u"network"_q, u"vpn"_q },
+	});
+
+	builder.addButton({
+		.id = u"advanced/servers"_q,
+		.title = tr::lng_polysrv_servers_title(),
+		.icon = { &st::menuIconNetwork },
+		.onClick = [] {
+			PolySrv::ShowServerListBox();
+		},
+		.keywords = { u"server"_q, u"servers"_q, u"dc"_q },
 	});
 
 	const auto showDownloadPath = container

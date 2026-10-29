@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_session.h"
 
+#include "polysrv/polysrv_servers.h"
+
 #include "apiwrap.h"
 #include "api/api_peer_colors.h"
 #include "api/api_updates.h"
@@ -401,7 +403,9 @@ bool Session::isTestMode() const {
 
 uint64 Session::uniqueId() const {
 	// See also Account::willHaveSessionUniqueId.
-	return userId().bare
+	return PolySrv::ScopedSessionId(
+		userId().bare,
+		_account->serverScope())
 		| (isTestMode() ? 0x0100'0000'0000'0000ULL : 0ULL);
 }
 

@@ -74,6 +74,17 @@ struct WalletEngineValue {
 	QByteArray bytes;
 };
 
+// The server an account belongs to, as it is stored.
+struct ServerSelection {
+	QString id;
+	QString host;
+	int port = 0;
+
+	[[nodiscard]] bool empty() const {
+		return id.isEmpty() || host.isEmpty() || port <= 0;
+	}
+};
+
 class Account final {
 public:
 	Account(not_null<Main::Account*> owner, const QString &dataName);
@@ -95,6 +106,8 @@ public:
 	}
 
 	void writeSessionSettings();
+	void writeServerSelection(const ServerSelection &selection);
+	[[nodiscard]] std::optional<ServerSelection> readServerSelection();
 	void writeMtpData();
 	void writeMtpConfig();
 

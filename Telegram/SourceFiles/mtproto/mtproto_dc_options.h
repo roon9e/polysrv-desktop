@@ -84,6 +84,17 @@ public:
 	void addFromList(const MTPVector<MTPDcOption> &options);
 	void addFromOther(DcOptions &&options);
 
+	// The options are locked when the account talks to one fixed server,
+	// so that the configuration the server sends cannot replace them.
+	void setOptionsLocked(bool locked);
+	[[nodiscard]] bool optionsLocked() const;
+
+	// Replaces the trusted public keys with the built in ones.
+	void setBuiltInPublicKeys();
+
+	// Replaces the trusted public keys with the one in the PEM.
+	void setPublicKeysFromPem(const QString &pem);
+
 	[[nodiscard]] std::vector<DcId> configEnumDcIds() const;
 
 	struct Variants {
@@ -161,6 +172,10 @@ private:
 
 	// True when we have overriden options from a .tdesktop-endpoints file.
 	bool _immutable = false;
+
+	// True when the options point at one fixed server and must not be
+	// replaced by the configuration the server sends.
+	bool _optionsLocked = false;
 
 };
 

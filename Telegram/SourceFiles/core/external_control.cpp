@@ -5,6 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
+#include "core/branding.h"
 #include "core/external_control.h"
 
 #include "core/application.h"
@@ -120,11 +121,12 @@ void RequestEnableAutomation() {
 		FillAutomationConfirmBox(
 			box,
 			u"An external program is trying to control "
-			u"Telegram Desktop over the local socket — read open "
+			u"%1 over the local socket — read open "
 			u"windows and activate them, change the proxy, the theme "
 			u"and lock the app.\n\nEnable local "
 			u"automation? While it is on, anything running under your "
-			u"user account can control the app."_q,
+			u"user account can control the app."_q
+				.arg(Branding::AppName.utf16()),
 			[=] {
 				box->closeBox();
 				show->showBox(Box(second));
@@ -594,7 +596,7 @@ QByteArray HandleExternalControl(const QString &command) {
 	} else if (!AutomationEnabled()) {
 		RequestEnableAutomation();
 		return Error(u"local automation is disabled — confirm in the "
-			u"Telegram window to enable"_q);
+			u"%1 window to enable"_q.arg(Branding::AppName.utf16()));
 	} else if (command == u"automation-off"_q) { // TEMP test helper.
 		Core::App().settings().writePref<bool>(kAutomationKey, false);
 		auto object = QJsonObject();
