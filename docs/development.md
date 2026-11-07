@@ -106,10 +106,11 @@ regenerated.
 
 ## The remote files
 
-The server list and the update manifest are published from the `gh-pages`
-branch and served from `https://roon9e.github.io/polysrv-desktop/`. The
-`gh-pages` branch is rewritten by hand, with `gh api`, and holds only the
-static files.
+The server list is published from the `gh-pages` branch and served from
+`https://roon9e.github.io/polysrv-desktop/`. The `gh-pages` branch is rewritten
+by hand, with `gh api`, and holds only the static files. An `update.json` also
+lives there, but the client no longer reads it: PolySRV ships with self-update
+disabled and new builds are installed from the Releases tab.
 
 The server list is a JSON object with a `servers` array, and every entry is a
 server record: `id`, `name`, `host`, `port`, `description`, `rsaPublicKey`,

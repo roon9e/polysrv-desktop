@@ -110,10 +110,13 @@ separate PolySRV counter to keep in mind.
 
 ## Releases
 
-Builds are published as GitHub releases, and the update manifest the client
-checks lives at `https://roon9e.github.io/polysrv-desktop/update.json`. The
-server list is at `https://roon9e.github.io/polysrv-desktop/servers.json` — one
-address the client has to trust for both.
+Builds are published as GitHub releases. PolySRV ships with self-update
+disabled: its only reachable update feed would deliver the official Telegram
+package, which cannot run a non-Telegram server, so new builds are installed by
+hand from the Releases tab.
+
+The server list the client reads is at
+`https://roon9e.github.io/polysrv-desktop/servers.json`.
 
 The download page is `https://roon9e.github.io/polysrv-desktop/`, and it links to
 the latest release.
