@@ -382,7 +382,11 @@ This atlas divides Telegram Desktop's sources into named areas, ordered from fou
 
 ## Platform
 
-### platform — OS integration
+### polysrv - the servers the client signs in to
+- Paths: `SourceFiles/polysrv/`, `SourceFiles/core/polysrv_remote.*`
+- The list of servers the client knows about: the official Telegram network, the ones the remote domain publishes, and the ones the user added. The remote domain and the files it serves are named in one place, `core/polysrv_remote.*`, and the server list itself lives in `polysrv/`. It must not hold the account binding, the data center options or the sign-in flow: those belong to `accounts`, `mtproto` and `intro`.
+
+### platform - OS integration
 - Paths: `SourceFiles/platform/`, `SourceFiles/webauthn/`, `SourceFiles/data/data_passkey_deserialize*`, `SourceFiles/menu/menu_dock*`, `SourceFiles/_other/startup_task_win.cpp`
 - Linux, macOS and Windows implementations behind `platform_*.h`: native window and title, notification backends, tray, launcher and autostart, file dialogs, overlay helpers, OCR, translation providers, wallet key protection, passkeys with caBLE and FIDO2, the Touch Bar and the Dock menu. It must not hold cross-platform feature logic. Today it also holds the shared caBLE passkey protocol, ceremony and QR box in `webauthn/`, which every OS backend calls; that belongs in a passkeys feature area, which does not exist yet.
 

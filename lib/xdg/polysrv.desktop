@@ -1,0 +1,22 @@
+[Desktop Entry]
+Name=PolySRV Desktop
+Comment=New era of messaging
+TryExec=PolySRV
+Exec=PolySRV -- %U
+Icon=org.polysrv.desktop
+Terminal=false
+StartupWMClass=PolySRVDesktop
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;x-scheme-handler/ton;x-scheme-handler/srv;
+Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;polysrv;
+Actions=quit;
+DBusActivatable=true
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=PolySRV -quit
+Name=Quit PolySRV
+Icon=application-exit

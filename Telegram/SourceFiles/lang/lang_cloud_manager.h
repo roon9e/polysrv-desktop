@@ -10,6 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/sender.h"
 #include "base/weak_ptr.h"
 
+#include <optional>
+
 namespace MTP {
 class Instance;
 } // namespace MTP
@@ -57,7 +59,7 @@ private:
 	mtpRequestId &packRequestId(Pack pack);
 	mtpRequestId packRequestId(Pack pack) const;
 	Pack packTypeFromId(const QString &id) const;
-	void requestLangPackDifference(Pack pack);
+	void requestLangPackDifference(Pack pack, bool force = false);
 	bool canApplyWithoutRestart(const QString &id) const;
 	void performSwitchToCustom();
 	void performSwitch(const Language &data);
@@ -83,6 +85,9 @@ private:
 	mtpRequestId _langPackRequestId = 0;
 	mtpRequestId _langPackBaseRequestId = 0;
 	mtpRequestId _languagesRequestId = 0;
+	// The server of the account the packs were loaded for, so that a switch
+	// to another server reloads the packs instead of keeping the old ones.
+	std::optional<QString> _lastServerScope;
 
 	QString _offerSwitchToId;
 	bool _restartAfterSwitch = false;

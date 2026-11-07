@@ -49,7 +49,9 @@ RSA *CreateRaw(bytes::const_span key) {
 	case Format::RSA_PUBKEY:
 		return PEM_read_bio_RSA_PUBKEY(bio.get(), nullptr, nullptr, nullptr);
 	}
-	Unexpected("format in RSAPublicKey::Private::Create.");
+	// An untrusted key may hold neither PEM header, so this has to fail
+	// gracefully instead of asserting; every caller handles a null result.
+	return nullptr;
 }
 
 } // namespace

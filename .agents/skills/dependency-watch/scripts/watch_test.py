@@ -75,7 +75,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertFalse((self.repo / '.git/dependency-watch').exists())
 
     def test_missing_required_manifest_fails(self):
-        (self.remote / 'snap/snapcraft.yaml').unlink()
+        (self.remote / 'Telegram/build/qt_version.py').unlink()
         self.commit()
         with self.assertRaises(ValueError):
             watch.snapshot(self.repo)

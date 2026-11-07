@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/about_box.h"
 
 #include "base/platform/base_platform_info.h"
+#include "core/branding.h"
 #include "core/application.h"
 #include "core/file_utilities.h"
 #include "core/update_channel.h"
@@ -51,7 +52,7 @@ rpl::producer<TextWithEntities> Text2() {
 		lt_github_link,
 		rpl::single(tr::link(
 			"GitHub",
-			"https://github.com/telegramdesktop/tdesktop")),
+			"https://github.com/roon9e/polysrv-desktop")),
 		tr::marked);
 }
 
@@ -65,7 +66,7 @@ rpl::producer<TextWithEntities> Text3() {
 } // namespace
 
 void AboutBox(not_null<Ui::GenericBox*> box) {
-	box->setTitle(u"Telegram Desktop"_q);
+	box->setTitle(Branding::AppName.utf16());
 
 	auto layout = box->verticalLayout();
 

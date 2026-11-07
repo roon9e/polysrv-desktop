@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_text_entities.h"
 #include "api/api_sending.h"
 #include "data/data_document.h"
+#include "data/data_premium_limits.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "core/application.h"
@@ -41,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme_preview.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 
 #include <QtCore/QBuffer>
@@ -209,6 +211,24 @@ struct PreparedFileThumbnail {
 }
 
 } // namespace
+
+int64 FileSizeLimit() {
+	const auto &account = Core::App().activeAccount();
+	if (!account.sessionExists()) {
+		return kFileSizeLimit;
+	}
+	return int64(Data::PremiumLimits(&account.session()).uploadMaxDefault())
+		* 512 * 1024;
+}
+
+int64 FileSizePremiumLimit() {
+	const auto &account = Core::App().activeAccount();
+	if (!account.sessionExists()) {
+		return kFileSizePremiumLimit;
+	}
+	return int64(Data::PremiumLimits(&account.session()).uploadMaxPremium())
+		* 512 * 1024;
+}
 
 int PhotoSideLimit(bool large) {
 	return large ? 2560 : 1280;
@@ -920,7 +940,7 @@ void FileLoadTask::process(ProcessArgs &&args) {
 	}
 	_result->filesize = std::min(filesize, qint64(UINT_MAX));
 
-	if (!filesize || filesize > kFileSizePremiumLimit) {
+	if (!filesize || filesize > FileSizePremiumLimit()) {
 		return;
 	}
 
@@ -1262,8 +1282,8 @@ void FileLoadTask::finish() {
 				: tr::lng_send_image_empty(tr::now, lt_name, _filepath)),
 			Ui::LayerOption::KeepOther);
 		removeFromAlbum();
-	} else if (_result->filesize > kFileSizePremiumLimit
-		|| (_result->filesize > kFileSizeLimit && !premium)) {
+	} else if (_result->filesize > FileSizePremiumLimit()
+		|| (_result->filesize > FileSizeLimit() && !premium)) {
 		Ui::show(
 			Box(FileSizeLimitBox, session, _result->filesize, nullptr),
 			Ui::LayerOption::KeepOther);
