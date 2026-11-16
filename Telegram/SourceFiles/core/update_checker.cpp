@@ -1520,7 +1520,9 @@ FlatpakLoader::~FlatpakLoader() {
 } // namespace
 
 bool UpdaterDisabled() {
-	return UpdaterIsDisabled;
+	// PolySRV ships without self-update: the only reachable feed delivers
+	// the official Telegram package, which cannot run other servers.
+	return true;
 }
 
 void SetUpdaterDisabledAtStartup() {

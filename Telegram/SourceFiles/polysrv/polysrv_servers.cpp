@@ -202,14 +202,18 @@ void WriteCustomServers(const std::vector<Server> &servers) {
 	}
 }
 
-[[nodiscard]] std::vector<Server> ParseRemoteServers(const QByteArray &data) {
-	auto result = std::vector<Server>();
+[[nodiscard]] std::optional<std::vector<Server>> ParseRemoteServers(
+		const QByteArray &data) {
 	const auto document = QJsonDocument::fromJson(data);
 	if (!document.isObject()) {
-		return result;
+		return std::nullopt;
 	}
-	const auto list = document.object().value("servers").toArray();
-	for (const auto &entry : list) {
+	const auto value = document.object().value("servers");
+	if (!value.isArray()) {
+		return std::nullopt;
+	}
+	auto result = std::vector<Server>();
+	for (const auto &entry : value.toArray()) {
 		if (!entry.isObject()) {
 			continue;
 		}
@@ -318,14 +322,14 @@ void EnsureServerLogos() {
 
 [[nodiscard]] bool ApplyRemoteList(State &state, const QByteArray &data) {
 	const auto servers = ParseRemoteServers(data);
-	if (servers.empty()) {
+	if (!servers) {
 		return false;
 	}
-	state.remote = servers;
+	state.remote = *servers;
 	state.remoteState = {
 		RemoteStatus::Succeeded,
 		QString(),
-		int(servers.size()),
+		int(servers->size()),
 	};
 	state.changed.fire({});
 	EnsureServerLogos();

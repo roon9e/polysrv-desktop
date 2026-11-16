@@ -606,11 +606,11 @@ void Account::logOut() {
 	}
 	_loggingOut = true;
 	if (_mtp) {
-		_mtp->logout([=] { loggedOut(); });
-	} else {
-		// We log out because we've forgotten passcode.
-		loggedOut();
+		// The bound server may never answer, so the local session does not
+		// wait for it and is torn down right away.
+		_mtp->logout([]{});
 	}
+	loggedOut();
 }
 
 bool Account::loggingOut() const {

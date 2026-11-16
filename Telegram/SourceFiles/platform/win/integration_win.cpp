@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/platform/win/base_windows_winrt.h"
 #include "core/application.h"
+#include "core/branding.h"
 #include "core/core_settings.h"
 #include "core/sandbox.h"
 #include "lang/lang_keys.h"
@@ -135,7 +136,8 @@ void WindowsIntegration::refreshCustomJumpList() {
 		}
 		auto titlePropVar = PROPVARIANT();
 		hr = InitPropVariantFromString(
-			tr::lng_quit_from_tray(tr::now).toStdWString().c_str(),
+			u"Quit %1"_q.arg(Branding::ShortAppName.utf16())
+				.toStdWString().c_str(),
 			&titlePropVar);
 		if (SUCCEEDED(hr)) {
 			hr = propertyStore->SetValue(PKEY_Title, titlePropVar);
