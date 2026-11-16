@@ -298,9 +298,9 @@ MimeDataState ComputeMimeDataState(const QMimeData *data) {
 
 		using namespace Core;
 		const auto filesize = info.size();
-		if (filesize > kFileSizePremiumLimit) {
+		if (filesize > FileSizePremiumLimit()) {
 			return MimeDataState::None;
-		//} else if (filesize > kFileSizeLimit) {
+		//} else if (filesize > FileSizeLimit()) {
 		//	return MimeDataState::PremiumFile;
 		} else if (allAreSmallImages) {
 			if (filesize > Images::kReadBytesLimit) {
@@ -388,8 +388,8 @@ PreparedList PrepareMediaList(
 			}
 			errorCallback(errorResult);
 			continue;
-		} else if (filesize > kFileSizePremiumLimit
-			|| (filesize > kFileSizeLimit && !premium)) {
+		} else if (filesize > FileSizePremiumLimit()
+			|| (filesize > FileSizeLimit() && !premium)) {
 			auto errorResult = PreparedList(
 				PreparedList::Error::TooLargeFile,
 				file);

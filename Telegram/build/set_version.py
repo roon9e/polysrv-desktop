@@ -131,14 +131,16 @@ replaceInFile(scriptPath + '/../SourceFiles/core/version.h', [
   [ r'(AppBetaVersion\s+=\s+)[a-z]+', r'\g<1>' + ('true' if versionBeta else 'false') ],
 ])
 
-parts = [versionMajor, versionMinor, versionPatch, versionAlpha]
+# The Windows and AppX versions need four components, so the revision is
+# zero; the version written and shown everywhere else is the three-part one.
+parts = [versionMajor, versionMinor, versionPatch, '0']
 withcomma = ','.join(parts)
 withdot = '.'.join(parts)
 rcReplaces = [
   [ r'(FILEVERSION\s+)\d+,\d+,\d+,\d+', r'\g<1>' + withcomma ],
   [ r'(PRODUCTVERSION\s+)\d+,\d+,\d+,\d+', r'\g<1>' + withcomma ],
-  [ r'("FileVersion",\s+)"\d+\.\d+\.\d+\.\d+"', r'\g<1>"' + withdot + '"' ],
-  [ r'("ProductVersion",\s+)"\d+\.\d+\.\d+\.\d+"', r'\g<1>"' + withdot + '"' ],
+  [ r'("FileVersion",\s+)"[^"]*"', r'\g<1>"' + versionStr + '"' ],
+  [ r'("ProductVersion",\s+)"[^"]*"', r'\g<1>"' + versionStr + '"' ],
 ]
 
 print('Patching Telegram.rc...')

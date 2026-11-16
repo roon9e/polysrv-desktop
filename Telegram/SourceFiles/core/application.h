@@ -292,6 +292,11 @@ public:
 	[[nodiscard]] QPointer<QWidget> checkStartUrlsActivating();
 	void registerWindowActivation(not_null<QWidget*> window);
 	bool openLocalUrl(const QString &url, QVariant context);
+	bool openServerLink(const QString &url, QVariant context);
+	bool openTelegramUrl(
+		const QString &url,
+		QVariant context,
+		bool serverRouted);
 	bool openInternalUrl(const QString &url, QVariant context);
 	[[nodiscard]] QString changelogLink() const;
 

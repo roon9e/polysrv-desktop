@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "apiwrap.h"
 #include "base/unixtime.h"
+#include "core/branding.h"
 #include "core/application.h"
 #include "core/changelogs.h"
 #include "core/core_settings.h"
@@ -38,7 +39,7 @@ Authorizations::Entry ParseEntry(const MTPDauthorization &data) {
 		|| isTest;
 
 	const auto appName = isDesktop
-		? u"Telegram Desktop%1"_q.arg(isTest ? " (GitHub)" : QString())
+		? Branding::AppName.utf16() + (isTest ? u" (GitHub)"_q : QString())
 		: qs(data.vapp_name());// + u" for "_q + qs(d.vplatform());
 	const auto appVer = [&] {
 		const auto version = qs(data.vapp_version());

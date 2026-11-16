@@ -13,7 +13,6 @@ REQUIRED = {
     'Telegram/build/prepare/prepare.py',
     'Telegram/build/qt_version.py',
     'Telegram/build/docker/centos_env/Dockerfile',
-    'snap/snapcraft.yaml',
 }
 MANIFEST_NAMES = {
     '.gitmodules', 'CMakeLists.txt', 'Cargo.toml', 'Cargo.lock',

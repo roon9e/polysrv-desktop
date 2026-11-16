@@ -1,0 +1,70 @@
+name: Prune caches.
+
+on:
+  workflow_call:
+    inputs:
+      prefixes:
+        description: Newline separated cache key prefixes to keep one of.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      prefixes:
+        description: Newline separated cache key prefixes to keep one of.
+        required: false
+        type: string
+
+permissions:
+  actions: write
+
+concurrency:
+  group: prune-caches
+  cancel-in-progress: false
+
+jobs:
+
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune superseded caches.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREFIXES: ${{ inputs.prefixes }}
+        run: |
+          set -euo pipefail
+
+          prefixes="${PREFIXES:-}"
+          if [ -z "$(printf '%s' "$prefixes" | tr -d '[:space:]')" ]; then
+            prefixes=$(cat <<'EOF'
+          Windows-X64-third-party-
+          Windows-ARM64-third-party-
+          Windows-x64-libs-
+          Windows-arm64-libs-
+          Windows-x64-qt-
+          Windows-arm64-qt-
+          Linux-libs-
+          Linux-tdesktop-
+          macOS-libs-
+          macOS-arm64-tdesktop-rust-
+          macOS-arm64-rnnoise-
+          macOS-arm64-webrtc-
+          macOS-arm64-tde2e-
+          EOF
+          )
+          fi
+
+          gh api --paginate "repos/$GH_REPO/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | [.id, .key, .created_at] | @tsv' > caches.tsv
+          echo "known caches: $(wc -l < caches.tsv)"
+
+          while IFS= read -r prefix; do
+            prefix="$(printf '%s' "$prefix" | tr -d '[:space:]')"
+            [ -n "$prefix" ] || continue
+            victims=$(awk -F'\t' -v p="$prefix" 'index($2, p) == 1 { print }' caches.tsv \
+              | sort -k3,3 | head -n -1 | cut -f1)
+            for id in $victims; do
+              echo "pruning $prefix: cache $id"
+              gh api -X DELETE "repos/$GH_REPO/actions/caches/$id"
+            done
+          done <<< "$prefixes"

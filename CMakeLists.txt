@@ -11,6 +11,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(cmake/validate_special_target.cmake)
 include(cmake/version.cmake)
 desktop_app_parse_version(Telegram/build/version)
+include(Telegram/cmake/branding.cmake)
+desktop_app_parse_branding(Telegram/build/branding)
 
 if (NOT DEFINED CMAKE_CONFIGURATION_TYPES)
     set(configuration_types_init 1)
@@ -19,8 +21,8 @@ endif()
 project(Telegram
     LANGUAGES C CXX
     VERSION ${desktop_app_version_cmake}
-    DESCRIPTION "Official Telegram Desktop messenger"
-    HOMEPAGE_URL "https://desktop.telegram.org"
+    DESCRIPTION "${Branding_Description}"
+    HOMEPAGE_URL "${Branding_Homepage}"
 )
 
 if (APPLE)
@@ -31,6 +33,18 @@ if (configuration_types_init
     AND CMAKE_CONFIGURATION_TYPES
     AND NOT MinSizeRel IN_LIST CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES};MinSizeRel" CACHE STRING "" FORCE)
+endif()
+
+# GCC 15 warns about the range loops that copy their element, and the code
+# base uses `for (const auto x : list)` widely. The copy is of a small
+# wrapper, so the warning is noise here, and the builds run with warnings as
+# errors.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
+    add_compile_options(-Wno-range-loop-construct)
+    # Its dangling-pointer and loop-optimization reports are inlining noise.
+    add_compile_options(-Wno-dangling-pointer)
+    add_compile_options(-Wno-aggressive-loop-optimizations)
 endif()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Telegram)
@@ -55,6 +69,15 @@ include(cmake/validate_d3d_compiler.cmake)
 include(cmake/target_prepare_qrc.cmake)
 
 include(cmake/options.cmake)
+
+# WHY: MSBuild hands a whole file list to one compiler when /MP is on, and
+# that compiler then runs out of memory on the biggest Windows translation
+# units; without /MP every file gets its own process.
+if (MSVC)
+    get_property(_common_options TARGET common_options PROPERTY INTERFACE_COMPILE_OPTIONS)
+    list(REMOVE_ITEM _common_options /MP)
+    set_property(TARGET common_options PROPERTY INTERFACE_COMPILE_OPTIONS "${_common_options}")
+endif()
 
 include(cmake/external/qt/package.cmake)
 

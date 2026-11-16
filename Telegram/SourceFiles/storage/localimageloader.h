@@ -38,6 +38,11 @@ constexpr auto kFileSizeLimit = 2'000 * int64(1024 * 1024);
 // Load files up to 4'000 MB.
 constexpr auto kFileSizePremiumLimit = 4'000 * int64(1024 * 1024);
 
+// The upload limit of the server of the active account, so a self-hosted
+// server that caps uploads below the Telegram defaults is honored.
+[[nodiscard]] int64 FileSizeLimit();
+[[nodiscard]] int64 FileSizePremiumLimit();
+
 [[nodiscard]] int PhotoSideLimit(bool large);
 [[nodiscard]] int PhotoSideLimit();
 

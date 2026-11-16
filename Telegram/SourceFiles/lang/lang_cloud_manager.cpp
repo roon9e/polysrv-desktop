@@ -163,10 +163,19 @@ CloudManager::CloudManager(Instance &langpack)
 	) | rpl::filter([=](Main::Account *account) {
 		return (account != nullptr);
 	}) | rpl::on_next_done([=](Main::Account *account) {
+		const auto scope = account->serverScope();
+		const auto serverChanged = _lastServerScope
+			&& (*_lastServerScope != scope);
+		_lastServerScope = scope;
 		*mtpLifetime = account->mtpMainSessionValue(
 		) | rpl::on_next([=](not_null<MTP::Instance*> instance) {
 			_api.emplace(instance);
-			resendRequests();
+			if (serverChanged) {
+				requestLangPackDifference(Pack::Current, true);
+				requestLangPackDifference(Pack::Base, true);
+			} else {
+				resendRequests();
+			}
 		});
 	}, [=] {
 		_api.reset();
@@ -212,7 +221,7 @@ mtpRequestId CloudManager::packRequestId(Pack pack) const {
 		: _langPackBaseRequestId;
 }
 
-void CloudManager::requestLangPackDifference(Pack pack) {
+void CloudManager::requestLangPackDifference(Pack pack, bool force) {
 	if (!_api) {
 		return;
 	}
@@ -221,7 +230,7 @@ void CloudManager::requestLangPackDifference(Pack pack) {
 		return;
 	}
 
-	const auto version = _langpack.version(pack);
+	const auto version = force ? 0 : _langpack.version(pack);
 	const auto code = _langpack.cloudLangCode(pack);
 	if (code.isEmpty()) {
 		return;
